@@ -62,9 +62,9 @@ module r2rv(
 //  REG/WIRE declarations
 //=======================================================
 
-  logic [31:0] pc, instr;
-  logic enabler_write;
-  logic [31:0] address, data_write, data_read;
+  logic we;
+  logic [6:0] rwa;
+  logic [31:0] pc, instr, rd2, wd3;
 
 
 
@@ -74,9 +74,8 @@ module r2rv(
 
   assign LEDR = SW;
 
-  riscv riscv(CLOCK_50, RESET_N, pc, instr, enabler_write, address, data_write, data_read);
-  imem imem(pc[7:2], instr);
-  dmem dmem(CLOCK_50, enabler_write, address, data_write, data_read, HEX0, HEX1, HEX2, HEX3, HEX4, HEX5);
+  riscv riscv(CLOCK_50, RESET_N, pc, instr, we, rwa, wd3, rd2);
+  mem mem(CLOCK_50, we, pc[8:2], rwa, rwa, wd3, instr, rd2, HEX0, HEX1, HEX2, HEX3, HEX4, HEX5);
 
 
 
