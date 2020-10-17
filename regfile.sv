@@ -2,8 +2,8 @@ module regfile(
   input logic clk,
   input logic we3,
   input logic [4:0] ra1, ra2, wa3,
-  input logic [31:0] wd3,
-  output logic [31:0] rd1, rd2
+  output logic [31:0] rd1, rd2,
+  input logic [31:0] wd3
 );
 
 logic [31:0] rf[31:0];

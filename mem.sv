@@ -6,7 +6,7 @@ module dmem(
 
 logic [31:0] RAM[63:0];
 
-assign rd = RAM[a[31:2]]; // word aligned
+assign rd = RAM[a[31:2]];
 
 always_ff @(posedge clk)
   if (we) RAM[a[31:2]] <= wd;
@@ -23,6 +23,6 @@ logic [31:0] RAM[63:0];
 initial
   $readmemh("memfile.dat",RAM);
 
-assign rd = RAM[a]; // word aligned
+assign rd = RAM[a];
 
 endmodule
