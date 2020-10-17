@@ -20,11 +20,12 @@ flopr #(32) pc_reg(clk, reset, pc_next, pc);
 
 // ID Instruction Decode
 
-logic src1_selector, src2_selector, wd3_selector, we3;
+logic src1_selector, src2_selector, wd3_selector, we3, funct7;
+logic [2:0] funct3;
 logic [4:0] ra1, ra2, wa3;
 logic [31:0] imm, rd1, rd2, wd3;
 
-decoder decode(instr, src1_selector, src2_selector, wd3_selector, we3, wem, ra1, ra2, wa3, imm);
+decoder decode(instr, src1_selector, src2_selector, wd3_selector, we3, wem, funct7, funct3, ra1, ra2, wa3, imm);
 
 regfile rf(clk, we3, ra1, ra2, wa3, rd1, rd2, wd3);
 
@@ -36,8 +37,8 @@ logic [31:0] src1, src2, alu_result;
 mux2 #(32) select_src1(rd1, pc_plus4, src1_selector, src1);
 mux2 #(32) select_src2(rd2, imm, src2_selector, src2);
 
-alu alu(src1, src2, { instr[30], instr[14:12] }, alu_result);
-branch br(rd1, rd2, instr[14:12], pc_selector);
+alu alu(src1, src2, { funct7, funct3 }, alu_result);
+branch br(rd1, rd2, funct3, pc_selector);
 
 // MA Memory Access
 

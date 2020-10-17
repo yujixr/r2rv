@@ -1,6 +1,7 @@
 module decoder(
   input logic [31:0] instr,
-  output logic src1_selector, src2_selector, wd3_selector, we3, wem,
+  output logic src1_selector, src2_selector, wd3_selector, we3, wem, funct7,
+  output logic [2:0] funct3,
   output logic [4:0] ra1, ra2, wa3,
   output logic [31:0] imm
 );
@@ -10,6 +11,8 @@ logic [31:0] imm_i, imm_s, imm_b, imm_u, imm_j;
 logic [4:0] ra1_pre, ra2_pre;
 
 assign opcode = instr[6:0];
+assign funct7 = instr[30];
+assign funct3 = instr[14:12];
 
 assign imm_i = { {12{instr[31]}}, instr[31:12] };
 assign imm_s = { {12{instr[31]}}, instr[31:25], instr[11:7] };
