@@ -76,7 +76,7 @@ module r2rv(
 
   riscv riscv(CLOCK_50, RESET_N, pc, instr, enabler_write, address, data_write, data_read);
   imem imem(pc[7:2], instr);
-  dmem dmem(CLOCK_50, enabler_write, address, data_write, data_read);
+  dmem dmem(CLOCK_50, enabler_write, address, data_write, data_read, HEX0, HEX1, HEX2, HEX3, HEX4, HEX5);
 
 
 
