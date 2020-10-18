@@ -1,5 +1,5 @@
 // R: Read, W: Write, RW: Read-Write
-// D: Data, A: Address, E: Enabler-signal
+// D: Data, A: Address, M: access Mode, E: Enabler-signal
 // 1...3: regfile1...3, M: Memory
 
 module riscv(
@@ -7,6 +7,7 @@ module riscv(
   output logic [31:0] pc,
   input logic [31:0] instr,
   output logic wem,
+  output logic [2:0] rwmm,
   output logic [31:0] rwam, wdm,
   input logic [31:0] rdm
 );
@@ -42,6 +43,7 @@ branch br(rd1, rd2, funct3, pc_selector);
 
 // MA Memory Access
 
+assign rwmm = funct3;
 assign rwam = alu_result;
 assign wdm = rd2;
 

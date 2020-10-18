@@ -1,5 +1,5 @@
 module hex_display(
-  input logic [4:0] src,
+  input logic [3:0] src,
   output logic [6:0] segment
 );
 

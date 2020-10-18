@@ -63,6 +63,7 @@ module r2rv(
 //=======================================================
 
   logic we;
+  logic [2:0] rwm;
   logic [31:0] pc, instr, rwa, rd2, wd3;
 
 
@@ -73,8 +74,8 @@ module r2rv(
 
   assign LEDR = SW;
 
-  riscv riscv(CLOCK_50, RESET_N, pc, instr, we, rwa, wd3, rd2);
-  mem mem(CLOCK_50, we, pc, rwa, rwa, wd3, instr, rd2, HEX0, HEX1, HEX2, HEX3, HEX4, HEX5);
+  riscv riscv(CLOCK_50, RESET_N, pc, instr, we, rwm, rwa, wd3, rd2);
+  mem mem(CLOCK_50, we, pc[8:0], rwa[8:0], rwa[8:0], 3'b010, rwm, rwm, wd3, instr, rd2, HEX0, HEX1, HEX2, HEX3, HEX4, HEX5);
 
 
 
