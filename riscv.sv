@@ -28,7 +28,7 @@ logic [31:0] imm, rd1, rd2, wd3;
 
 decoder decode(instr, src1_selector, src2_selector, wd3_selector, we3, wem, funct7, funct3, ra1, ra2, wa3, imm);
 
-regfile rf(clk, we3, ra1, ra2, wa3, rd1, rd2, wd3);
+regfile rf(clk, reset, we3, ra1, ra2, wa3, rd1, rd2, wd3);
 
 // EX EXecute
 
