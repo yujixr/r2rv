@@ -10,7 +10,8 @@ parameter U_HALF_WORD = 3'b101;
 
 module writer(
   input logic clk,
-  output logic [31:0] RAM[RAM_SIZE-1:0],
+  input logic [31:0] RAM_READ[RAM_SIZE-1:0],
+  output logic [31:0] RAM_WRITE[RAM_SIZE-1:0],
   input logic enabler,
   input logic [2:0] mode,
   input logic [RAM_SIZE_LOG:0] addr,
@@ -18,14 +19,14 @@ module writer(
 );
 
 logic [31:0] x;
-assign x = RAM[addr];
+assign x = RAM_READ[addr];
 
 always_ff @(posedge clk)
   if (enabler)
     case(mode)
-      BYTE:       RAM[addr] <= { x[31:8], data[7:0] };
-      HALF_WORD:  RAM[addr] <= { x[31:16], data[15:0] };
-      WORD:       RAM[addr] <= data;
+      BYTE:       RAM_WRITE[addr] <= { x[31:8], data[7:0] };
+      HALF_WORD:  RAM_WRITE[addr] <= { x[31:16], data[15:0] };
+      WORD:       RAM_WRITE[addr] <= data;
       default: ;
     endcase
 
@@ -71,7 +72,7 @@ initial
 
 reader read1(RAM, rm1, ra1, rd1);
 reader read2(RAM, rm2, ra2, rd2);
-writer write(clk, RAM, we, wm3, wa3, wd3);
+writer write(clk, RAM, RAM, we, wm3, wa3, wd3);
 
 logic [31:0] disp;
 assign disp = RAM[RAM_SIZE-1];
