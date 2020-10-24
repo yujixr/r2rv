@@ -10,9 +10,9 @@ logic [31:0] rf[31:0];
 
 genvar i;
 generate
-    for (i = 0; i < 32; i++) begin: Reg
-      flopr ff(clk, reset, we3&(wa3==i) ? wd3 : rf[i], rf[i]);
-    end
+  for (i = 0; i < 32; i++) begin: Reg
+    flopr ff(clk, reset, we3&(wa3==i) ? wd3 : rf[i], rf[i]);
+  end
 endgenerate
 
 assign rd1 = (ra1 != 0) ? rf[ra1] : 0;

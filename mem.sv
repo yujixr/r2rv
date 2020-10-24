@@ -1,5 +1,5 @@
 parameter RAM_SIZE_LOG = 7;
-parameter RAM_SIZE = 2**RAM_SIZE_LOG;
+parameter RAM_SIZE = 2**(RAM_SIZE_LOG + 1);
 
 parameter BYTE        = 3'b000;
 parameter HALF_WORD   = 3'b001;
