@@ -21,8 +21,9 @@ flopr #(32) pc_reg(clk, reset, pc_next, pc);
 
 // ID Instruction Decode
 
-logic src1_selector, src2_selector, wd3_selector, we3, funct7;
+logic src1_selector, src2_selector, wd3_selector, we3;
 logic [2:0] funct3;
+logic [6:0] funct7;
 logic [4:0] ra1, ra2, wa3;
 logic [31:0] imm, rd1, rd2, wd3;
 
@@ -33,24 +34,29 @@ regfile rf(clk, reset, we3, ra1, ra2, wa3, rd1, rd2, wd3);
 // EX EXecute
 
 logic pc_selector;
-logic [31:0] src1, src2, alu_result;
+logic [31:0] src1, src2, alu_result, mul_result, div_result, muldiv_result, ex_result;
 
 mux2 #(32) select_src1(rd1, pc_plus4, src1_selector, src1);
 mux2 #(32) select_src2(rd2, imm, src2_selector, src2);
 
-alu alu(src1, src2, { funct7, funct3 }, alu_result);
+alu alu(src1, src2, { funct7[5], funct3 }, alu_result);
+mul mul(src1, src2, funct3[1:0], mul_result);
+div div(src1, src2, funct3[1:0], div_result);
 branch br(rd1, rd2, funct3, pc_selector);
+
+mux2 #(32) select_muldiv_result(mul_result, div_result, funct3[2], muldiv_result);
+mux2 #(32) select_ex_result(alu_result, muldiv_result, funct7[0], ex_result);
 
 // MA Memory Access
 
 assign rwmm = funct3;
-assign rwam = alu_result;
+assign rwam = ex_result;
 assign wdm = rd2;
 
-mux2 #(32) select_pc_next(pc_plus4, alu_result, pc_selector, pc_next);
+mux2 #(32) select_pc_next(pc_plus4, ex_result, pc_selector, pc_next);
 
 // WB Write-Back
 
-mux2 #(32) select_wd3(alu_result, rdm, wd3_selector, wd3);
+mux2 #(32) select_wd3(ex_result, rdm, wd3_selector, wd3);
 
 endmodule
