@@ -12,51 +12,103 @@ module riscv(
   input logic [31:0] rdm
 );
 
-// IF Instruction Fetch
-
-logic [31:0] pc_next, pc_plus4;
-assign pc_plus4 = pc + 4;
+// BATON ZONE: EX -> IF
 
 flopr #(32) pc_reg(clk, reset, pc_next, pc);
 
-// ID Instruction Decode
+// IF Instruction Fetch
+
+logic [31:0] pc_plus4;
+assign pc_plus4 = pc + 4;
+
+// BATON ZONE: IF -> ID
+
+logic [31:0] ID_instr, ID_pc_plus4;
+
+flopr #(32) IFID_instr(clk, reset_or_flash, instr, ID_instr);
+flopr #(32) IFID_pc_plus4(clk, reset_or_flash, pc_plus4, ID_pc_plus4);
+
+// ID Instruction Decode and register fetch
 
 logic src1_selector, src2_selector, wd3_selector, we3;
 logic [2:0] funct3;
 logic [6:0] funct7;
-logic [4:0] ra1, ra2, wa3;
-logic [31:0] imm, rd1, rd2, wd3;
+logic [4:0] wa3;
+logic [31:0] imm, rd1, rd2;
 
-decoder decode(instr, src1_selector, src2_selector, wd3_selector, we3, wem, funct7, funct3, ra1, ra2, wa3, imm);
+id id(.clk, .reset, .instr(ID_instr),
+  .we3_in(WB_we3), .wa3_in(WB_wa3), .wd3_in(wd3),
+  .src1_selector, .src2_selector, .wd3_selector, .we3_out(we3), .wem,
+  .funct3, .funct7, .wa3_out(wa3), .imm, .rd1, .rd2);
 
-regfile rf(clk, reset, we3, ra1, ra2, wa3, rd1, rd2, wd3);
+// BATON ZONE: ID -> EX
+
+logic EX_src1_selector, EX_src2_selector, EX_wd3_selector, EX_we3;
+logic [2:0] EX_funct3;
+logic [6:0] EX_funct7;
+logic [4:0] EX_wa3;
+logic [31:0] EX_imm, EX_rd1, EX_rd2, EX_pc_plus4;
+
+flopr #(1) IDEX_src1_selector(clk, reset_or_flash, src1_selector, EX_src1_selector);
+flopr #(1) IDEX_src2_selector(clk, reset_or_flash, src2_selector, EX_src2_selector);
+flopr #(1) IDEX_wd3_selector(clk, reset_or_flash, wd3_selector, EX_wd3_selector);
+flopr #(1) IDEX_we3(clk, reset_or_flash, we3, EX_we3);
+flopr #(3) IDEX_funct3(clk, reset_or_flash, funct3, EX_funct3);
+flopr #(7) IDEX_funct7(clk, reset_or_flash, funct7, EX_funct7);
+flopr #(5) IDEX_wa3(clk, reset_or_flash, wa3, EX_wa3);
+flopr #(32) IDEX_imm(clk, reset_or_flash, imm, EX_imm);
+flopr #(32) IDEX_rd1(clk, reset_or_flash, rd1, EX_rd1);
+flopr #(32) IDEX_rd2(clk, reset_or_flash, rd2, EX_rd2);
+flopr #(32) IDEX_pc_plus4(clk, reset_or_flash, ID_pc_plus4, EX_pc_plus4);
 
 // EX EXecute
 
-logic pc_selector;
-logic [31:0] src1, src2, alu_result, mul_result, div_result, muldiv_result, ex_result;
+logic is_branched, reset_or_flash;
+logic [31:0] ex_result, pc_next;
 
-mux2 #(32) select_src1(rd1, pc_plus4, src1_selector, src1);
-mux2 #(32) select_src2(rd2, imm, src2_selector, src2);
+ex ex(.pc_plus4(EX_pc_plus4), .src1_selector(EX_src1_selector), .src2_selector(EX_src2_selector),
+  .funct3(EX_funct3), .funct7(EX_funct7), .imm(EX_imm), .rd1(EX_rd1), .rd2(EX_rd2),
+  .ex_result, .is_branched);
 
-alu alu(src1, src2, { funct7[5], funct3 }, alu_result);
-mul mul(src1, src2, funct3[1:0], mul_result);
-div div(src1, src2, funct3[1:0], div_result);
-branch br(rd1, rd2, funct3, pc_selector);
+assign reset_or_flash = reset | is_branched;
+mux2 #(32) select_pc_next(pc_plus4, ex_result, is_branched, pc_next);
 
-mux2 #(32) select_muldiv_result(mul_result, div_result, funct3[2], muldiv_result);
-mux2 #(32) select_ex_result(alu_result, muldiv_result, funct7[0], ex_result);
+// BATON ZONE: EX -> MA
+
+logic MA_we3, MA_wd3_selector;
+logic [2:0] MA_funct3;
+logic [4:0] MA_wa3;
+logic [31:0] MA_ex_result, MA_rd2;
+
+flopr #(1) EXMA_we3(clk, reset, EX_we3, MA_we3);
+flopr #(1) EXMA_wd3_selector(clk, reset, EX_wd3_selector, MA_wd3_selector);
+flopr #(3) EXMA_funct3(clk, reset, EX_funct3, MA_funct3);
+flopr #(5) EXMA_wa3(clk, reset, EX_wa3, MA_wa3);
+flopr #(32) EXMA_ex_result(clk, reset, ex_result, MA_ex_result);
+flopr #(32) EXMA_rd2(clk, reset, EX_rd2, MA_rd2);
 
 // MA Memory Access
 
-assign rwmm = funct3;
-assign rwam = ex_result;
-assign wdm = rd2;
+assign rwmm = MA_funct3;
+assign rwam = MA_ex_result;
+assign wdm = MA_rd2;
 
-mux2 #(32) select_pc_next(pc_plus4, ex_result, pc_selector, pc_next);
+// BATON ZONE: MA -> WB
+
+logic WB_we3, WB_wd3_selector;
+logic [4:0] WB_wa3;
+logic [31:0] WB_ex_result, WB_rdm;
+
+flopr #(1) MAWB_we3(clk, reset, MA_we3, WB_we3);
+flopr #(1) MAWB_wd3_selector(clk, reset, MA_wd3_selector, WB_wd3_selector);
+flopr #(5) MAWB_wa3(clk, reset, MA_wa3, WB_wa3);
+flopr #(32) MAWB_ex_result(clk, reset, MA_ex_result, WB_ex_result);
+flopr #(32) MAWB_rdm(clk, reset, rdm, WB_rdm);
 
 // WB Write-Back
 
-mux2 #(32) select_wd3(ex_result, rdm, wd3_selector, wd3);
+logic [31:0] wd3;
+
+mux2 #(32) select_wd3(WB_ex_result, WB_rdm, WB_wd3_selector, wd3);
 
 endmodule

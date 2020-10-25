@@ -24,6 +24,8 @@ set_global_assignment -name SYSTEMVERILOG_FILE mux2.sv
 set_global_assignment -name SYSTEMVERILOG_FILE r2rv.sv
 set_global_assignment -name SYSTEMVERILOG_FILE regfile.sv
 set_global_assignment -name SYSTEMVERILOG_FILE riscv.sv
+set_global_assignment -name SYSTEMVERILOG_FILE stage_ex.sv
+set_global_assignment -name SYSTEMVERILOG_FILE stage_id.sv
 set_global_assignment -name NUM_PARALLEL_PROCESSORS 6
 
 #============================================================
