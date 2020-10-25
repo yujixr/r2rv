@@ -58,8 +58,8 @@ endmodule
 
 module mem(
   input logic clk, we,
-  input logic [8:0] ra1, ra2, wa3, 
-  input logic [2:0] rm1, rm2, wm3, 
+  input logic [8:0] ra1, ra2, wa3,
+  input logic [2:0] rm1, rm2, wm3,
   input logic [31:0] wd3,
   output logic [31:0] rd1, rd2,
   output logic [6:0] HEX0, HEX1, HEX2, HEX3, HEX4, HEX5

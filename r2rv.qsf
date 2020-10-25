@@ -18,6 +18,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE branch.sv
 set_global_assignment -name SYSTEMVERILOG_FILE decoder.sv
 set_global_assignment -name SYSTEMVERILOG_FILE flopr.sv
 set_global_assignment -name SYSTEMVERILOG_FILE mem.sv
+set_global_assignment -name SYSTEMVERILOG_FILE mul.sv
 set_global_assignment -name SYSTEMVERILOG_FILE mux2.sv
 set_global_assignment -name SYSTEMVERILOG_FILE r2rv.sv
 set_global_assignment -name SYSTEMVERILOG_FILE regfile.sv
