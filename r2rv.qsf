@@ -26,7 +26,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE regfile.sv
 set_global_assignment -name SYSTEMVERILOG_FILE riscv.sv
 set_global_assignment -name SYSTEMVERILOG_FILE stage_ex.sv
 set_global_assignment -name SYSTEMVERILOG_FILE stage_id.sv
-set_global_assignment -name NUM_PARALLEL_PROCESSORS 6
+set_global_assignment -name NUM_PARALLEL_PROCESSORS ALL
 
 #============================================================
 # CLOCK
@@ -327,4 +327,12 @@ set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
 set_global_assignment -name BOARD "DE0-CV Development Board"
 set_global_assignment -name EDA_SIMULATION_TOOL "ModelSim-Altera (SystemVerilog)"
 set_global_assignment -name EDA_OUTPUT_DATA_FORMAT "SYSTEMVERILOG HDL" -section_id eda_simulation
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
+set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
+set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+set_global_assignment -name TIMING_ANALYZER_MULTICORNER_ANALYSIS ON
+set_global_assignment -name FLOW_ENABLE_RTL_VIEWER ON
+set_global_assignment -name SMART_RECOMPILE ON
+set_global_assignment -name FLOW_ENABLE_IO_ASSIGNMENT_ANALYSIS ON
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

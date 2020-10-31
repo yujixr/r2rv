@@ -1,5 +1,5 @@
-parameter RAM_SIZE_LOG = 7;
-parameter RAM_SIZE = 2**(RAM_SIZE_LOG + 1);
+parameter RAM_SIZE_LOG = 8;
+parameter RAM_SIZE = 2**RAM_SIZE_LOG;
 
 parameter BYTE        = 3'b000;
 parameter HALF_WORD   = 3'b001;
@@ -14,14 +14,14 @@ module writer(
   output logic [31:0] RAM_WRITE[RAM_SIZE-1:0],
   input logic enabler,
   input logic [2:0] mode,
-  input logic [RAM_SIZE_LOG:0] addr,
+  input logic [RAM_SIZE_LOG-1:0] addr,
   input logic [31:0] data
 );
 
 logic [31:0] x;
 assign x = RAM_READ[addr];
 
-always_ff @(posedge clk)
+always_ff @(negedge clk)
   if (enabler)
     case(mode)
       BYTE:       RAM_WRITE[addr] <= { x[31:8], data[7:0] };
@@ -36,7 +36,7 @@ endmodule
 module reader(
   input logic [31:0] RAM[RAM_SIZE-1:0],
   input logic [2:0] mode,
-  input logic [RAM_SIZE_LOG:0] addr,
+  input logic [RAM_SIZE_LOG-1:0] addr,
   output logic [31:0] data
 );
 
@@ -58,10 +58,11 @@ endmodule
 
 module mem(
   input logic clk, we,
-  input logic [8:0] ra1, ra2, wa3,
+  input logic [RAM_SIZE_LOG-1:0] ra1, ra2, wa3,
   input logic [2:0] rm1, rm2, wm3,
   input logic [31:0] wd3,
   output logic [31:0] rd1, rd2,
+	input logic [9:0] SW,
   output logic [6:0] HEX0, HEX1, HEX2, HEX3, HEX4, HEX5
 );
 
@@ -75,7 +76,7 @@ reader read2(RAM, rm2, ra2, rd2);
 writer write(clk, RAM, RAM, we, wm3, wa3, wd3);
 
 logic [31:0] disp;
-assign disp = RAM[RAM_SIZE-1];
+assign disp = RAM[SW];
 
 hex_display hex5(disp[23:20], HEX5);
 hex_display hex4(disp[19:16], HEX4);

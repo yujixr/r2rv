@@ -1,6 +1,6 @@
 module decoder(
   input logic [31:0] instr,
-  output logic src1_selector, src2_selector, wd3_selector, we3, wem,
+  output logic src1_selector, src2_selector, wd3_selector, we3, wem, is_branch_op,
   output logic [2:0] funct3,
   output logic [6:0] funct7,
   output logic [4:0] ra1, ra2, wa3,
@@ -39,18 +39,18 @@ assign wa3 = instr[11:7];
 
 always_comb
   case (opcode)  // Immediate    Register1      Register2     Reg:1, PC+4:1      Reg:1, imm:1       ALU:0, Mem:1      Write to Reg/Mem
-    OP_IMM:   begin imm = imm_i; ra1 = ra1_pre; ra2 = 5'b0;   src1_selector = 0; src2_selector = 1; wd3_selector = 0; we3 = 1; wem = 0; end
-    LUI:      begin imm = imm_u; ra1 = 5'b0;    ra2 = 5'b0;   src1_selector = 0; src2_selector = 1; wd3_selector = 0; we3 = 1; wem = 0; end
-    AUIPC:    begin imm = imm_u; ra1 = 5'b0;    ra2 = 5'b0;   src1_selector = 1; src2_selector = 1; wd3_selector = 0; we3 = 1; wem = 0; end
-    OP:       begin imm = 32'b0; ra1 = ra1_pre; ra2 = ra2_pre;src1_selector = 0; src2_selector = 0; wd3_selector = 0; we3 = 1; wem = 0; end
-    JAL:      begin imm = imm_j; ra1 = 5'b0;    ra2 = 5'b0;   src1_selector = 1; src2_selector = 0; wd3_selector = 0; we3 = 1; wem = 0; end
-    JALR:     begin imm = imm_i; ra1 = 5'b0;    ra2 = 5'b0;   src1_selector = 1; src2_selector = 0; wd3_selector = 0; we3 = 1; wem = 0; end
-    BRANCH:   begin imm = imm_b; ra1 = 5'b0;    ra2 = 5'b0;   src1_selector = 0; src2_selector = 0; wd3_selector = 0; we3 = 0; wem = 0; end
-    LOAD:     begin imm = imm_i; ra1 = ra1_pre; ra2 = 5'b0;   src1_selector = 0; src2_selector = 1; wd3_selector = 1; we3 = 1; wem = 0; end
-    STORE:    begin imm = imm_s; ra1 = ra1_pre; ra2 = ra2_pre;src1_selector = 0; src2_selector = 1; wd3_selector = 0; we3 = 0; wem = 1; end
-    MISC_MEM: begin imm = 32'b0; ra1 = ra1_pre; ra2 = 5'b0;   src1_selector = 0; src2_selector = 0; wd3_selector = 0; we3 = 0; wem = 0; end
-    SYSTEM:   begin imm = 32'b0; ra1 = 5'b0;    ra2 = 5'b0;   src1_selector = 0; src2_selector = 0; wd3_selector = 0; we3 = 0; wem = 0; end
-    default:  begin imm = 32'b0; ra1 = 5'b0;    ra2 = 5'b0;   src1_selector = 0; src2_selector = 0; wd3_selector = 0; we3 = 0; wem = 0; end
+    OP_IMM:   begin imm = imm_i; ra1 = ra1_pre; ra2 = 5'b0;   src1_selector = 0; src2_selector = 1; wd3_selector = 0; we3 = 1; wem = 0; is_branch_op = 0; end
+    LUI:      begin imm = imm_u; ra1 = 5'b0;    ra2 = 5'b0;   src1_selector = 0; src2_selector = 1; wd3_selector = 0; we3 = 1; wem = 0; is_branch_op = 0; end
+    AUIPC:    begin imm = imm_u; ra1 = 5'b0;    ra2 = 5'b0;   src1_selector = 1; src2_selector = 1; wd3_selector = 0; we3 = 1; wem = 0; is_branch_op = 0; end
+    OP:       begin imm = 32'b0; ra1 = ra1_pre; ra2 = ra2_pre;src1_selector = 0; src2_selector = 0; wd3_selector = 0; we3 = 1; wem = 0; is_branch_op = 0; end
+    JAL:      begin imm = imm_j; ra1 = 5'b0;    ra2 = 5'b0;   src1_selector = 1; src2_selector = 0; wd3_selector = 0; we3 = 1; wem = 0; is_branch_op = 0; end
+    JALR:     begin imm = imm_i; ra1 = 5'b0;    ra2 = 5'b0;   src1_selector = 1; src2_selector = 0; wd3_selector = 0; we3 = 1; wem = 0; is_branch_op = 0; end
+    BRANCH:   begin imm = imm_b; ra1 = 5'b0;    ra2 = 5'b0;   src1_selector = 0; src2_selector = 0; wd3_selector = 0; we3 = 0; wem = 0; is_branch_op = 1; end
+    LOAD:     begin imm = imm_i; ra1 = ra1_pre; ra2 = 5'b0;   src1_selector = 0; src2_selector = 1; wd3_selector = 1; we3 = 1; wem = 0; is_branch_op = 0; end
+    STORE:    begin imm = imm_s; ra1 = ra1_pre; ra2 = ra2_pre;src1_selector = 0; src2_selector = 1; wd3_selector = 0; we3 = 0; wem = 1; is_branch_op = 0; end
+    MISC_MEM: begin imm = 32'b0; ra1 = ra1_pre; ra2 = 5'b0;   src1_selector = 0; src2_selector = 0; wd3_selector = 0; we3 = 0; wem = 0; is_branch_op = 0; end
+    SYSTEM:   begin imm = 32'b0; ra1 = 5'b0;    ra2 = 5'b0;   src1_selector = 0; src2_selector = 0; wd3_selector = 0; we3 = 0; wem = 0; is_branch_op = 0; end
+    default:  begin imm = 32'b0; ra1 = 5'b0;    ra2 = 5'b0;   src1_selector = 0; src2_selector = 0; wd3_selector = 0; we3 = 0; wem = 0; is_branch_op = 0; end
   endcase
 
 endmodule
