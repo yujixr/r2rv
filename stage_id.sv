@@ -13,8 +13,11 @@ module id(
 
 logic [4:0] ra1, ra2;
 
-decoder decode(instr, src1_selector, src2_selector, wd3_selector, we3_out, wem, funct3, funct7, ra1, ra2, wa3_out, imm);
+decoder decode(.instr, .src1_selector, .src2_selector,
+  .wd3_selector, .we3(we3_out), .wem, .funct3, .funct7,
+  .ra1, .ra2, .wa3(wa3_out), .imm);
 
-regfile rf(clk, reset, we3_in, ra1, ra2, wa3_in, rd1, rd2, wd3_in);
+regfile rf(.clk, .reset, .we3(we3_in),
+  .ra1, .ra2, .wa3(wa3_in), .rd1, .rd2, .wd3(wd3_in));
 
 endmodule

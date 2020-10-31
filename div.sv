@@ -1,6 +1,6 @@
 module div(
   input logic [31:0] a, b,
-  input logic [1:0] funct3,
+  input logic [2:0] funct3,
   output logic [31:0] y
 );
 

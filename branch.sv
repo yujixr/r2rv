@@ -1,36 +1,17 @@
 module branch(
-  input logic [31:0] src1, src2,
-  input logic [2:0] funct,
+  input logic [31:0] a, b,
+  input logic [2:0] funct3,
   output logic result
 );
 
-function cmp_signed(input [31:0] src1, src2);
-begin
-  if(src1[31])
-  begin
-    if(src2[31])
-    cmp_signed = src1 > src2;
-    else
-    cmp_signed = 1;
-  end
-  else
-  begin
-    if(src2[31])
-    cmp_signed = 1;
-    else
-    cmp_signed = src1 < src2;
-  end
-end
-endfunction
-
 always_comb
-  case(funct)
-    3'b000: result = (src1 == src2);            // BEQ
-    3'b001: result = (src1 != src2);            // BNE
-    3'b100: result = cmp_signed(src1, src2);    // BLT
-    3'b101: result = ~cmp_signed(src1, src2);   // BGE
-    3'b110: result = src1 < src2;               // BLTU
-    3'b111: result = src1 >= src2;              // BGEU
+  case(funct3)
+    3'b000: result = (a == b);                  // BEQ
+    3'b001: result = (a != b);                  // BNE
+    3'b100: result = $signed(a) < $signed(b);   // BLT
+    3'b101: result = $signed(a) >= $signed(b);  // BGE
+    3'b110: result = a < b;                     // BLTU
+    3'b111: result = a >= b;                    // BGEU
     default: result = 0;
   endcase
 
