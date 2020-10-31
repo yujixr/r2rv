@@ -27,7 +27,7 @@ always_ff @(negedge clk)
       BYTE:       RAM_WRITE[addr] <= { x[31:8], data[7:0] };
       HALF_WORD:  RAM_WRITE[addr] <= { x[31:16], data[15:0] };
       WORD:       RAM_WRITE[addr] <= data;
-      default: ;
+      default:    RAM_WRITE[addr] <= x;
     endcase
 
 endmodule
