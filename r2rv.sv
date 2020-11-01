@@ -62,7 +62,7 @@ module r2rv(
 //  REG/WIRE declarations
 //=======================================================
 
-  logic we;
+  logic we, clk;
   logic [2:0] rwm;
   logic [31:0] pc, instr, rwa, rd2, wd3;
 
@@ -73,12 +73,13 @@ module r2rv(
 //=======================================================
 
   assign LEDR = SW;
+  assign clk = CLOCK_50;
 
-  riscv riscv(.clk(KEY[0]), .reset(!RESET_N), .pc, .instr,
-	.wem(we), .rwmm(rwm), .rwam(rwa), .wdm(wd3), .rdm(rd2),
-    .SW, .HEX0, .HEX1, .HEX2, .HEX3, .HEX4, .HEX5);
-  mem mem(.clk(KEY[0]), .we, .ra1(pc), .ra2(rwa), .wa3(rwa), 
-    .rm1(WORD), .rm2(rwm), .wm3(rwm), .rd1(instr), .rd2, .wd3);
+  riscv riscv(.clk, .reset(!RESET_N), .pc, .instr,
+	.wem(we), .rwmm(rwm), .rwam(rwa), .wdm(wd3), .rdm(rd2));
+  mem mem(.clk, .we, .ra1(pc), .ra2(rwa), .wa3(rwa), 
+    .rm1(WORD), .rm2(rwm), .wm3(rwm), .rd1(instr), .rd2, .wd3,
+    .HEX0, .HEX1, .HEX2, .HEX3, .HEX4, .HEX5);
 
 
 

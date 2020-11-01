@@ -12,7 +12,7 @@ logic [31:0] rf[31:1];
 genvar i;
 generate
   for (i = 1; i < 32; i++) begin: Reg
-    flopr ff(.clk, .reset, .d(we3&(wa3==i) ? wd3 : rf[i]), .q(rf[i]));
+    flopr #(32) ff(.clk, .reset, .d(we3&(wa3==i) ? wd3 : rf[i]), .q(rf[i]));
   end
 endgenerate
 

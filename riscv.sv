@@ -9,34 +9,8 @@ module riscv(
   output logic wem,
   output logic [2:0] rwmm,
   output logic [31:0] rwam, wdm,
-  input logic [31:0] rdm,
-	input logic [9:0] SW,
-  output logic [6:0] HEX0, HEX1, HEX2, HEX3, HEX4, HEX5
+  input logic [31:0] rdm
 );
-
-// Debug Display
-
-logic [23:0] stdout;
-
-always_comb
- if(SW[0]) stdout = pc_plus4[23:0];
- else if(SW[1]) stdout = pc_next[23:0];
- else if(SW[2]) stdout = EX_is_branch_op;
- else if(SW[3]) stdout = is_branched;
- else if(SW[4]) stdout = is_branch_op;
- else if(SW[5]) stdout = imm[23:0];
- else if(SW[6]) stdout = EX_rd1[23:0];
- else if(SW[7]) stdout = EX_rd2[23:0];
- else if(SW[8]) stdout = ex_result[23:0];
- else if(SW[9]) stdout = EX_pc[23:0];
- else stdout = pc[23:0];
-
-hex_display hex5(stdout[23:20], HEX5);
-hex_display hex4(stdout[19:16], HEX4);
-hex_display hex3(stdout[15:12], HEX3);
-hex_display hex2(stdout[11:8], HEX2);
-hex_display hex1(stdout[7:4], HEX1);
-hex_display hex0(stdout[3:0], HEX0);
 
 // BATON ZONE: EX -> IF
 
