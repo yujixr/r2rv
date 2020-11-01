@@ -18,10 +18,9 @@ always_comb
     3'b010: result = $signed(a) < $signed(b);     // SLT
     3'b011: result = a < b;                       // SLTU
     3'b100: result = a ^ b;                       // XOR
-    3'b101: result = funct7[5] ? (a >>> shamt) : (a >> shamt); // SRL, SRA
+    3'b101: result = b[5] ? (a >>> shamt) : (a >> shamt); // SRL, SRA
     3'b110: result = a | b;                       // OR
     3'b111: result = a & b;                       // AND
-    default: result = 0;
   endcase
 
 endmodule
