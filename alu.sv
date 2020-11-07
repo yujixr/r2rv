@@ -1,26 +1,25 @@
 module alu(
-  input logic [31:0] a, b,
-  input logic [2:0] funct3,
-  input logic [6:0] funct7,
-  output logic [31:0] result
+  input logic [31:0] Vj, Vk,
+  input logic [9:0] Op,
+  output logic [31:0] y
 );
 
-logic [31:0] b_inv;
 logic [4:0] shamt;
-
-assign b_inv = funct7[5] ? (~b + 1) : b;
-assign shamt = b[4:0];
+assign shamt = Vk[4:0];
 
 always_comb
-  case(funct3)
-    3'b000: result = $signed(a) + $signed(b_inv); // ADD, SUB
-    3'b001: result = a << shamt;                  // SLL
-    3'b010: result = $signed(a) < $signed(b);     // SLT
-    3'b011: result = a < b;                       // SLTU
-    3'b100: result = a ^ b;                       // XOR
-    3'b101: result = b[5] ? (a >>> shamt) : (a >> shamt); // SRL, SRA
-    3'b110: result = a | b;                       // OR
-    3'b111: result = a & b;                       // AND
+  case(Op[9:6])
+    4'b0000: y = $signed(Vj) + $signed(Vk);      // ADD
+    4'b0001: y = $signed(Vj) + $signed(~Vk + 1); // SUB
+    4'b0010: y = Vj << shamt;                    // SLL
+    4'b0100: y = $signed(Vj) < $signed(Vk);      // SLT
+    4'b0110: y = Vj < Vk;                        // SLTU
+    4'b1000: y = Vj ^ Vk;                        // XOR
+    4'b1010: y = Vj >> shamt;                    // SRL
+    4'b1011: y = Vj >>> shamt;                   // SRA
+    4'b1100: y = Vj | Vk;                        // OR
+    4'b1110: y = Vj & Vk;                        // AND
+    default: y = 32'b0;
   endcase
 
 endmodule

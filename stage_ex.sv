@@ -1,27 +1,24 @@
 module ex(
-  input logic [31:0] pc,
-  input logic src1_selector, src2_selector, is_branch_op,
-  input logic [2:0] funct3,
-  input logic [6:0] funct7,
-  input logic [31:0] imm, rd1, rd2,
-  output logic [31:0] ex_result,
-  output logic is_branched
+  input logic is_branch_op,
+  input logic [9:0] Op,
+  input logic [31:0] pc_plus4, rd1, rd2, Vj, Vk,
+  output logic is_branched,
+  output logic [31:0] wdx, addr
 );
 
 logic is_branch_established;
-logic [31:0] src1, src2, alu_result, mul_result, div_result, muldiv_result;
+logic [31:0] alu_result, mul_result, div_result, muldiv_result, ex_result;
 
-mux2 #(32) select_src1(rd1, pc, src1_selector, src1);
-mux2 #(32) select_src2(rd2, imm, src2_selector, src2);
+alu alu(.Vj, .Vk, .Op, .y(alu_result));
+mul mul(.Vj, .Vk, .Op, .y(mul_result));
+div div(.Vj, .Vk, .Op, .y(div_result));
+branch br(.Vj(rd1), .Vk(rd2), .Op, .y(is_branch_established));
 
-alu alu(.a(src1), .b(src2), .funct3, .funct7, .result(alu_result));
-mul mul(.a(src1), .b(src2), .funct3, .y(mul_result));
-div div(.a(src1), .b(src2), .funct3, .y(div_result));
-branch br(.a(rd1), .b(rd2), .funct3, .result(is_branch_established));
-
-mux2 #(32) select_muldiv_result(mul_result, div_result, funct3[2], muldiv_result);
-mux2 #(32) select_ex_result(alu_result, muldiv_result, funct7[0], ex_result);
+mux2 #(32) select_muldiv_result(mul_result, div_result, Op[9], muldiv_result);
+mux2 #(32) select_ex_result(alu_result, muldiv_result, Op[0], ex_result);
+mux2 #(32) select_wdx(ex_result, pc_plus4, is_branch_op, wdx);
 
 assign is_branched = is_branch_op & is_branch_established;
+assign addr = { ex_result[31:1], 1'b0 };
 
 endmodule

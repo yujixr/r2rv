@@ -23,72 +23,67 @@ assign pc_plus4 = pc + 4;
 
 // BATON ZONE: IF -> ID
 
-logic [31:0] ID_instr, ID_pc;
+logic [31:0] ID_instr, ID_pc, ID_pc_plus4;
 
 flopr #(32) IFID_instr(clk, reset_or_flash, instr, ID_instr);
 flopr #(32) IFID_pc(clk, reset_or_flash, pc, ID_pc);
+flopr #(32) IFID_pc_plus4(clk, reset_or_flash, pc_plus4, ID_pc_plus4);
 
 // ID Instruction Decode and register fetch
 
-logic src1_selector, src2_selector, wd3_selector, we3, ID_wem, is_branch_op;
-logic [2:0] funct3, ID_rwmm;
-logic [6:0] funct7;
+logic is_load_op, we3, ID_wem, is_branch_op;
+logic [2:0] ID_rwmm;
 logic [4:0] wa3;
-logic [31:0] imm, rd1, rd2;
+logic [9:0] Op;
+logic [31:0] Vj, Vk, rd1, rd2;
 
-id id(.clk, .reset, .instr(ID_instr),
-  .we3_in(WB_we3), .wa3_in(WB_wa3), .wd3_in(wd3),
-  .src1_selector, .src2_selector, .wd3_selector, .we3_out(we3), .wem(ID_wem), .rwmm(ID_rwmm),
-  .is_branch_op, .funct3, .funct7, .wa3_out(wa3), .imm, .rd1, .rd2);
+id id(.clk, .reset, .we3_in(WB_we3), .wa3_in(WB_wa3),
+  .instr(ID_instr), .pc(ID_pc), .wd3_in(wd3),
+  .is_load_op, .we3_out(we3), .wem(ID_wem), .is_branch_op, .rwmm(ID_rwmm),
+  .wa3_out(wa3), .Op, .Vj, .Vk, .rd1, .rd2);
 
 // BATON ZONE: ID -> EX
 
-logic EX_src1_selector, EX_src2_selector, EX_wd3_selector,
-      EX_we3, EX_wem, EX_is_branch_op;
-logic [2:0] EX_funct3, EX_rwmm;
-logic [6:0] EX_funct7;
+logic EX_is_load_op, EX_we3, EX_wem, EX_is_branch_op;
+logic [2:0] EX_rwmm;
 logic [4:0] EX_wa3;
-logic [31:0] EX_imm, EX_rd1, EX_rd2, EX_pc;
+logic [9:0] EX_Op;
+logic [31:0] EX_Vj, EX_Vk, EX_rd1, EX_rd2, EX_pc_plus4;
 
-flopr #(1) IDEX_src1_selector(clk, reset_or_flash, src1_selector, EX_src1_selector);
-flopr #(1) IDEX_src2_selector(clk, reset_or_flash, src2_selector, EX_src2_selector);
-flopr #(1) IDEX_wd3_selector(clk, reset_or_flash, wd3_selector, EX_wd3_selector);
+flopr #(1) IDEX_is_load_op(clk, reset_or_flash, is_load_op, EX_is_load_op);
 flopr #(1) IDEX_we3(clk, reset_or_flash, we3, EX_we3);
-flopr #(1) IDEX_is_branch_op(clk, reset_or_flash, is_branch_op, EX_is_branch_op);
 flopr #(1) IDEX_wem(clk, reset_or_flash, ID_wem, EX_wem);
-flopr #(3) IDEX_funct3(clk, reset_or_flash, funct3, EX_funct3);
+flopr #(1) IDEX_is_branch_op(clk, reset_or_flash, is_branch_op, EX_is_branch_op);
 flopr #(3) IDEX_rwmm(clk, reset_or_flash, ID_rwmm, EX_rwmm);
-flopr #(7) IDEX_funct7(clk, reset_or_flash, funct7, EX_funct7);
 flopr #(5) IDEX_wa3(clk, reset_or_flash, wa3, EX_wa3);
-flopr #(32) IDEX_imm(clk, reset_or_flash, imm, EX_imm);
+flopr #(10) IDEX_Op(clk, reset_or_flash, Op, EX_Op);
+flopr #(32) IDEX_Vj(clk, reset_or_flash, Vj, EX_Vj);
+flopr #(32) IDEX_Vk(clk, reset_or_flash, Vk, EX_Vk);
 flopr #(32) IDEX_rd1(clk, reset_or_flash, rd1, EX_rd1);
 flopr #(32) IDEX_rd2(clk, reset_or_flash, rd2, EX_rd2);
-flopr #(32) IDEX_pc(clk, reset_or_flash, ID_pc, EX_pc);
+flopr #(32) IDEX_pc_plus4(clk, reset_or_flash, ID_pc_plus4, EX_pc_plus4);
 
 // EX EXecute
 
 logic is_branched, reset_or_flash;
-logic [31:0] ex_result, pc_next, wdx;
+logic [31:0] pc_next, wdx, addr;
 
-ex ex(.pc(EX_pc),
-  .src1_selector(EX_src1_selector), .src2_selector(EX_src2_selector),
-  .is_branch_op(EX_is_branch_op), .funct3(EX_funct3), .funct7(EX_funct7),
-  .imm(EX_imm), .rd1(EX_rd1), .rd2(EX_rd2), .ex_result, .is_branched);
+ex ex(.is_branch_op(EX_is_branch_op), .Op(EX_Op), .pc_plus4(EX_pc_plus4),
+  .rd1(EX_rd1), .rd2(EX_rd2), .Vj(EX_Vj), .Vk(EX_Vk), .is_branched, .wdx, .addr);
 
 assign reset_or_flash = reset | is_branched;
-mux2 #(32) select_pc_next(pc_plus4, { ex_result[31:1], 1'b0 }, is_branched, pc_next);
-mux2 #(32) select_wdx(ex_result, EX_pc + 4, EX_is_branch_op, wdx);
+mux2 #(32) select_pc_next(pc_plus4, addr, is_branched, pc_next);
 
 // BATON ZONE: EX -> MA
 
-logic MA_we3, MA_wem, MA_wd3_selector;
+logic MA_we3, MA_wem, MA_is_load_op;
 logic [2:0] MA_rwmm;
 logic [4:0] MA_wa3;
 logic [31:0] MA_wdx, MA_rd2;
 
 flopr #(1) EXMA_we3(clk, reset, EX_we3, MA_we3);
 flopr #(1) EXMA_wem(clk, reset, EX_wem, MA_wem);
-flopr #(1) EXMA_wd3_selector(clk, reset, EX_wd3_selector, MA_wd3_selector);
+flopr #(1) EXMA_is_load_op(clk, reset, EX_is_load_op, MA_is_load_op);
 flopr #(3) EXMA_rwmm(clk, reset, EX_rwmm, MA_rwmm);
 flopr #(5) EXMA_wa3(clk, reset, EX_wa3, MA_wa3);
 flopr #(32) EXMA_wdx(clk, reset, wdx, MA_wdx);
@@ -103,12 +98,12 @@ assign wdm = MA_rd2;
 
 // BATON ZONE: MA -> WB
 
-logic WB_we3, WB_wd3_selector;
+logic WB_we3, WB_is_load_op;
 logic [4:0] WB_wa3;
 logic [31:0] WB_wdx, WB_rdm;
 
 flopr #(1) MAWB_we3(clk, reset, MA_we3, WB_we3);
-flopr #(1) MAWB_wd3_selector(clk, reset, MA_wd3_selector, WB_wd3_selector);
+flopr #(1) MAWB_is_load_op(clk, reset, MA_is_load_op, WB_is_load_op);
 flopr #(5) MAWB_wa3(clk, reset, MA_wa3, WB_wa3);
 flopr #(32) MAWB_wdx(clk, reset, MA_wdx, WB_wdx);
 flopr #(32) MAWB_rdm(clk, reset, rdm, WB_rdm);
@@ -117,6 +112,6 @@ flopr #(32) MAWB_rdm(clk, reset, rdm, WB_rdm);
 
 logic [31:0] wd3;
 
-mux2 #(32) select_wd3(WB_wdx, WB_rdm, WB_wd3_selector, wd3);
+mux2 #(32) select_wd3(WB_wdx, WB_rdm, WB_is_load_op, wd3);
 
 endmodule
