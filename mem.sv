@@ -23,12 +23,7 @@ generate
   for (i = 0; i < RAM_SIZE; i++) begin: Update
     always_ff @(negedge clk)
       if ((addr==i) & enabler)
-        case(mode)
-          BYTE:       RAM_WRITE[i] <= { RAM_READ[i][31:8], data[7:0] };
-          HALF_WORD:  RAM_WRITE[i] <= { RAM_READ[i][31:16], data[15:0] };
-          WORD:       RAM_WRITE[i] <= data;
-          default:    RAM_WRITE[i] <= RAM_READ[i];
-        endcase
+        RAM_WRITE[i] <= data;
       else
         RAM_WRITE[i] <= RAM_READ[i];
   end
@@ -44,18 +39,7 @@ module reader(
   output logic [31:0] data
 );
 
-logic [31:0] x;
-assign x = RAM[addr];
-
-always_comb
-  case(mode)
-    BYTE:         data = { { 24{ x[7] } }, x[7:0] };
-    HALF_WORD:    data = { { 16{ x[15] } }, x[15:0] };
-    WORD:         data = x;
-    U_BYTE:       data = { 24'b0, x[7:0] };
-    U_HALF_WORD:  data = { 16'b0, x[15:0] };
-    default:      data = 32'b0;
-  endcase
+assign data = RAM[addr];
 
 endmodule
 

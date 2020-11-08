@@ -1,10 +1,10 @@
 module decoder(
   input logic [31:0] instr, pc,
-  output logic is_load_op, we3, wem, is_branch_op,
+  output logic we3, is_branch_op, is_load_op, is_store_op, A_rdy,
   output logic [2:0] rwmm,
   output logic [4:0] Qj, Qk, wa3,
   output logic [9:0] Op,
-  output logic [31:0] Vj, Vk
+  output logic [31:0] Vj, Vk, A
 );
 
 parameter OP_IMM    = 7'b0010011;
@@ -38,22 +38,21 @@ assign Rk = instr[24:20];
 assign funct3 = instr[14:12];
 assign funct7 = instr[31:25];
 assign wa3 = instr[11:7];
-assign Op = { funct3, funct7 };
 
 always_comb
-  case (opcode)                                                // Write to Reg/Mem  Mem Access Mode
-    OP_IMM:   begin Vj = 32'b0; Vk = imm_i; Qj = Rj;   Qk = 5'b0; we3 = 1; wem = 0; rwmm = 3'b0;   is_branch_op = 0; is_load_op = 0; end
-    LUI:      begin Vj = 32'b0; Vk = imm_u; Qj = 5'b0; Qk = 5'b0; we3 = 1; wem = 0; rwmm = 3'b0;   is_branch_op = 0; is_load_op = 0; end
-    AUIPC:    begin Vj = pc;    Vk = imm_u; Qj = 5'b0; Qk = 5'b0; we3 = 1; wem = 0; rwmm = 3'b0;   is_branch_op = 0; is_load_op = 0; end
-    OP:       begin Vj = 32'b0; Vk = 32'b0; Qj = Rj;   Qk = Rk;   we3 = 1; wem = 0; rwmm = 3'b0;   is_branch_op = 0; is_load_op = 0; end
-    JAL:      begin Vj = pc;    Vk = imm_j; Qj = 5'b0; Qk = 5'b0; we3 = 1; wem = 0; rwmm = 3'b0;   is_branch_op = 1; is_load_op = 0; end
-    JALR:     begin Vj = 32'b0; Vk = imm_i; Qj = Rj;   Qk = Rj;   we3 = 1; wem = 0; rwmm = 3'b0;   is_branch_op = 1; is_load_op = 0; end
-    BRANCH:   begin Vj = pc;    Vk = imm_b; Qj = 5'b0; Qk = 5'b0; we3 = 0; wem = 0; rwmm = 3'b0;   is_branch_op = 1; is_load_op = 0; end
-    LOAD:     begin Vj = 32'b0; Vk = imm_i; Qj = Rj;   Qk = 5'b0; we3 = 1; wem = 0; rwmm = funct3; is_branch_op = 0; is_load_op = 1; end
-    STORE:    begin Vj = 32'b0; Vk = imm_s; Qj = Rj;   Qk = Rk;   we3 = 0; wem = 1; rwmm = funct3; is_branch_op = 0; is_load_op = 0; end
-    MISC_MEM: begin Vj = 32'b0; Vk = 32'b0; Qj = Rj;   Qk = 5'b0; we3 = 0; wem = 0; rwmm = 3'b0;   is_branch_op = 0; is_load_op = 0; end
-    SYSTEM:   begin Vj = 32'b0; Vk = 32'b0; Qj = 5'b0; Qk = 5'b0; we3 = 0; wem = 0; rwmm = 3'b0;   is_branch_op = 0; is_load_op = 0; end
-    default:  begin Vj = 32'b0; Vk = 32'b0; Qj = 5'b0; Qk = 5'b0; we3 = 0; wem = 0; rwmm = 3'b0;   is_branch_op = 0; is_load_op = 0; end
+  case (opcode)                                                                                                    // Write to Reg  Mem Access Mode
+    OP_IMM:   begin Op = { funct3, 7'b0 };   Qj = Rj;   Qk = 5'b0; Vj = 32'b0; Vk = imm_i; A = 32'b0;      A_rdy = 1; we3 = 1; rwmm = 3'b0;   is_branch_op = 0; is_load_op = 0; is_store_op = 0; end
+    LUI:      begin Op = { funct3, 7'b0 };   Qj = 5'b0; Qk = 5'b0; Vj = 32'b0; Vk = imm_u; A = 32'b0;      A_rdy = 1; we3 = 1; rwmm = 3'b0;   is_branch_op = 0; is_load_op = 0; is_store_op = 0; end
+    AUIPC:    begin Op = { funct3, 7'b0 };   Qj = 5'b0; Qk = 5'b0; Vj = pc;    Vk = imm_u; A = 32'b0;      A_rdy = 1; we3 = 1; rwmm = 3'b0;   is_branch_op = 0; is_load_op = 0; is_store_op = 0; end
+    OP:       begin Op = { funct3, funct7 }; Qj = Rj;   Qk = Rk;   Vj = 32'b0; Vk = 32'b0; A = 32'b0;      A_rdy = 1; we3 = 1; rwmm = 3'b0;   is_branch_op = 0; is_load_op = 0; is_store_op = 0; end
+    JAL:      begin Op = { funct3, 7'b0 };   Qj = 5'b0; Qk = 5'b0; Vj = 32'b0; Vk = 32'b0; A = pc + imm_j; A_rdy = 1; we3 = 1; rwmm = 3'b0;   is_branch_op = 1; is_load_op = 0; is_store_op = 0; end
+    JALR:     begin Op = { funct3, 7'b0 };   Qj = Rj;   Qk = Rj;   Vj = 32'b0; Vk = 32'b0; A = imm_i;      A_rdy = 0; we3 = 1; rwmm = 3'b0;   is_branch_op = 1; is_load_op = 0; is_store_op = 0; end
+    BRANCH:   begin Op = { funct3, 7'b0 };   Qj = Rj;   Qk = Rk;   Vj = 32'b0; Vk = 32'b0; A = pc + imm_b; A_rdy = 1; we3 = 0; rwmm = 3'b0;   is_branch_op = 1; is_load_op = 0; is_store_op = 0; end
+    LOAD:     begin Op = { funct3, 7'b0 };   Qj = Rj;   Qk = 5'b0; Vj = 32'b0; Vk = 32'b0; A = imm_i;      A_rdy = 0; we3 = 1; rwmm = funct3; is_branch_op = 0; is_load_op = 1; is_store_op = 0; end
+    STORE:    begin Op = { funct3, 7'b0 };   Qj = Rj;   Qk = Rk;   Vj = 32'b0; Vk = 32'b0; A = imm_s;      A_rdy = 0; we3 = 0; rwmm = funct3; is_branch_op = 0; is_load_op = 0; is_store_op = 1; end
+    MISC_MEM: begin Op = { funct3, 7'b0 };   Qj = Rj;   Qk = 5'b0; Vj = 32'b0; Vk = 32'b0; A = 32'b0;      A_rdy = 1; we3 = 0; rwmm = 3'b0;   is_branch_op = 0; is_load_op = 0; is_store_op = 0; end
+    SYSTEM:   begin Op = { funct3, 7'b0 };   Qj = 5'b0; Qk = 5'b0; Vj = 32'b0; Vk = 32'b0; A = 32'b0;      A_rdy = 1; we3 = 0; rwmm = 3'b0;   is_branch_op = 0; is_load_op = 0; is_store_op = 0; end
+    default:  begin Op = { funct3, 7'b0 };   Qj = 5'b0; Qk = 5'b0; Vj = 32'b0; Vk = 32'b0; A = 32'b0;      A_rdy = 1; we3 = 0; rwmm = 3'b0;   is_branch_op = 0; is_load_op = 0; is_store_op = 0; end
   endcase
 
 endmodule
