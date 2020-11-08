@@ -66,11 +66,11 @@ writer write(clk, dmem, dmem, we, wm3, wa3[RAM_SIZE_LOG+1:2], wd3);
 
 assign stdout = dmem['h3f];
 
-hex_display hex5(stdout[23:20], HEX5);
-hex_display hex4(stdout[19:16], HEX4);
-hex_display hex3(stdout[15:12], HEX3);
-hex_display hex2(stdout[11:8], HEX2);
-hex_display hex1(stdout[7:4], HEX1);
-hex_display hex0(stdout[3:0], HEX0);
+hex_display hex2023(stdout[23:20], HEX5);
+hex_display hex1619(stdout[19:16], HEX4);
+hex_display hex1215(stdout[15:12], HEX3);
+hex_display hex0811(stdout[11:8], HEX2);
+hex_display hex0407(stdout[7:4], HEX1);
+hex_display hex0003(stdout[3:0], HEX0);
 
 endmodule

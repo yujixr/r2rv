@@ -1,5 +1,5 @@
 module ex(
-  input logic is_branch_op,
+  input logic [2:0] Unit,
   input logic [9:0] Op,
   input logic [31:0] pc_plus4, Vj, Vk,
   output logic is_branched,
@@ -14,10 +14,15 @@ mul mul(.Vj, .Vk, .Op, .y(mul_result));
 div div(.Vj, .Vk, .Op, .y(div_result));
 branch br(.Vj, .Vk, .Op, .y(is_branch_established));
 
-mux2 #(32) select_muldiv_result(mul_result, div_result, Op[9], muldiv_result);
-mux2 #(32) select_ex_result(alu_result, muldiv_result, Op[0], ex_result);
-mux2 #(32) select_wdx(ex_result, pc_plus4, is_branch_op, wdx);
+always_comb
+  case (Unit)
+    ALU:     wdx = alu_result;
+    BRANCH:  wdx = pc_plus4;
+    MUL:     wdx = mul_result;
+    DIV:     wdx = div_result;
+    default: wdx = 32'b0;
+  endcase
 
-assign is_branched = is_branch_op & is_branch_established;
+assign is_branched = (Unit==BRANCH) & is_branch_established;
 
 endmodule

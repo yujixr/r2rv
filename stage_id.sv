@@ -2,8 +2,7 @@ module id(
   input logic clk, reset,
   input logic [4:0] wa3,
   input logic [31:0] instr, pc, wd3,
-  output logic is_branch_op, is_load_op, is_store_op,
-  output logic [2:0] rwmm,
+  output logic [2:0] Unit, rwmm,
   output logic [4:0] Dest,
   output logic [9:0] Op,
   output logic [31:0] Vj, Vk, A
@@ -14,8 +13,7 @@ logic [4:0] Qj, Qk;
 logic [31:0] rd1, rd2, _Vj, _Vk, _A;
 
 decoder decode(.instr, .pc,
-  .is_load_op, .is_store_op, .is_branch_op, .A_rdy,
-  .rwmm, .Op, .Qj, .Qk, .Dest,
+  .A_rdy, .Unit, .rwmm, .Op, .Qj, .Qk, .Dest,
   .Vj(_Vj), .Vk(_Vk), .A(_A));
 
 regfile rf(.clk, .reset, .ra1(Qj), .ra2(Qk),
