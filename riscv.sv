@@ -63,47 +63,29 @@ flopr #(32) IDEX_Vk(clk, reset_or_flash, Vk, EX_Vk);
 flopr #(32) IDEX_A(clk, reset_or_flash, A, EX_A);
 flopr #(32) IDEX_pc_plus4(clk, reset_or_flash, ID_pc_plus4, EX_pc_plus4);
 
-// EX EXecute
+// EX EXecute & memory access
 
 logic is_branched, reset_or_flash;
-logic [31:0] pc_next, wdx;
+logic [31:0] pc_next, result;
 
 ex ex(.Unit(EX_Unit), .Op(EX_Op), .pc_plus4(EX_pc_plus4),
-  .Vj(EX_Vj), .Vk(EX_Vk), .is_branched, .wdx);
+  .rdm, .Vj(EX_Vj), .Vk(EX_Vk), .is_branched, .result);
+
+assign wem = (EX_Unit==STORE);
+assign rwmm = EX_rwmm;
+assign rwam = EX_A;
+assign wdm = EX_Vk;
 
 assign reset_or_flash = reset | is_branched;
 mux2 #(32) select_pc_next(pc_plus4, { EX_A[31:1], 1'b0 }, is_branched, pc_next);
 
-// BATON ZONE: EX -> MA
+// BATON ZONE: EX -> WB
 
-logic [2:0] MA_Unit, MA_rwmm;
-logic [4:0] MA_Dest;
-logic [31:0] MA_wdx, MA_Vk, MA_A;
-
-flopr #(3) EXMA_Unit(clk, reset, EX_Unit, MA_Unit);
-flopr #(3) EXMA_rwmm(clk, reset, EX_rwmm, MA_rwmm);
-flopr #(5) EXMA_Dest(clk, reset, EX_Dest, MA_Dest);
-flopr #(32) EXMA_wdx(clk, reset, wdx, MA_wdx);
-flopr #(32) EXMA_Vk(clk, reset_or_flash, EX_Vk, MA_Vk);
-flopr #(32) EXMA_A(clk, reset_or_flash, EX_A, MA_A);
-
-// MA Memory Access
-
-assign wem = (MA_Unit==STORE);
-assign rwmm = MA_rwmm;
-assign rwam = MA_A;
-assign wdm = MA_Vk;
-
-// BATON ZONE: MA -> WB
-
-logic [2:0] WB_Unit;
 logic [4:0] WB_Dest;
-logic [31:0] WB_wdx, WB_rdm;
+logic [31:0] WB_result;
 
-flopr #(3) MAWB_Unit(clk, reset, MA_Unit, WB_Unit);
-flopr #(5) MAWB_Dest(clk, reset, MA_Dest, WB_Dest);
-flopr #(32) MAWB_wdx(clk, reset, MA_wdx, WB_wdx);
-flopr #(32) MAWB_rdm(clk, reset, rdm, WB_rdm);
+flopr #(5) EXWB_Dest(clk, reset, EX_Dest, WB_Dest);
+flopr #(32) EXWB_result(clk, reset, result, WB_result);
 
 // WB Write-Back
 
@@ -111,7 +93,6 @@ logic [4:0] wa3;
 logic [31:0] wd3;
 
 assign wa3 = WB_Dest;
-
-mux2 #(32) select_wd3(WB_wdx, WB_rdm, (WB_Unit==LOAD), wd3);
+assign wd3 = WB_result;
 
 endmodule
