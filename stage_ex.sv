@@ -1,7 +1,7 @@
 module ex(
   input logic [2:0] Unit,
   input logic [9:0] Op,
-  input logic [31:0] pc_plus4, rdm, Vj, Vk,
+  input logic [31:0] pc, rdm, Vj, Vk,
   output logic is_branched,
   output logic [31:0] result
 );
@@ -17,7 +17,7 @@ branch br(.Vj, .Vk, .Op, .y(is_branch_established));
 always_comb
   case (Unit)
     ALU:     result = alu_result;
-    BRANCH:  result = pc_plus4;
+    BRANCH:  result = pc + 4;
     MUL:     result = mul_result;
     DIV:     result = div_result;
     LOAD:    result = rdm;

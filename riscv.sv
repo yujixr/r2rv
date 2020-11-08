@@ -31,11 +31,10 @@ assign pc_plus4 = pc + 4;
 
 // BATON ZONE: IF -> ID
 
-logic [31:0] ID_instr, ID_pc, ID_pc_plus4;
+logic [31:0] ID_instr, ID_pc;
 
 flopr #(32) IFID_instr(clk, reset_or_flash, instr, ID_instr);
 flopr #(32) IFID_pc(clk, reset_or_flash, pc, ID_pc);
-flopr #(32) IFID_pc_plus4(clk, reset_or_flash, pc_plus4, ID_pc_plus4);
 
 // ID Instruction Decode and register fetch
 
@@ -52,7 +51,7 @@ id id(.clk, .reset, .wa3, .instr(ID_instr), .pc(ID_pc), .wd3,
 logic [2:0] EX_Unit, EX_rwmm;
 logic [4:0] EX_Dest;
 logic [9:0] EX_Op;
-logic [31:0] EX_Vj, EX_Vk, EX_A, EX_pc_plus4;
+logic [31:0] EX_Vj, EX_Vk, EX_A, EX_pc;
 
 flopr #(3) IDEX_Unit(clk, reset_or_flash, Unit, EX_Unit);
 flopr #(3) IDEX_rwmm(clk, reset_or_flash, ID_rwmm, EX_rwmm);
@@ -61,14 +60,14 @@ flopr #(10) IDEX_Op(clk, reset_or_flash, Op, EX_Op);
 flopr #(32) IDEX_Vj(clk, reset_or_flash, Vj, EX_Vj);
 flopr #(32) IDEX_Vk(clk, reset_or_flash, Vk, EX_Vk);
 flopr #(32) IDEX_A(clk, reset_or_flash, A, EX_A);
-flopr #(32) IDEX_pc_plus4(clk, reset_or_flash, ID_pc_plus4, EX_pc_plus4);
+flopr #(32) IDEX_pc(clk, reset_or_flash, ID_pc, EX_pc);
 
 // EX EXecute & memory access
 
 logic is_branched, reset_or_flash;
 logic [31:0] pc_next, result;
 
-ex ex(.Unit(EX_Unit), .Op(EX_Op), .pc_plus4(EX_pc_plus4),
+ex ex(.Unit(EX_Unit), .Op(EX_Op), .pc(EX_pc),
   .rdm, .Vj(EX_Vj), .Vk(EX_Vk), .is_branched, .result);
 
 assign wem = (EX_Unit==STORE);
