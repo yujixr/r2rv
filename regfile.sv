@@ -5,12 +5,14 @@ module regfile(
   input logic [31:0] wd3
 );
 
+parameter REG_SIZE = 32;
+
 // x0 is always zero.
-logic [31:0] rf[31:1];
+logic [31:0] rf[REG_SIZE-1:1];
 
 genvar i;
 generate
-  for (i = 1; i < 32; i++) begin: Reg
+  for (i = 1; i < REG_SIZE; i++) begin: Reg
     flopr #(32) ff(.clk, .reset, .d((wa3==i) ? wd3 : rf[i]), .q(rf[i]));
   end
 endgenerate

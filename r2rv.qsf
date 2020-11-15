@@ -15,6 +15,7 @@ set_global_assignment -name SDC_FILE r2rv.sdc
 set_global_assignment -name SYSTEMVERILOG_FILE 7seg.sv
 set_global_assignment -name SYSTEMVERILOG_FILE alu.sv
 set_global_assignment -name SYSTEMVERILOG_FILE branch.sv
+set_global_assignment -name SYSTEMVERILOG_FILE buffer.sv
 set_global_assignment -name SYSTEMVERILOG_FILE decoder.sv
 set_global_assignment -name SYSTEMVERILOG_FILE div.sv
 set_global_assignment -name SYSTEMVERILOG_FILE flopr.sv
@@ -24,8 +25,10 @@ set_global_assignment -name SYSTEMVERILOG_FILE mux2.sv
 set_global_assignment -name SYSTEMVERILOG_FILE r2rv.sv
 set_global_assignment -name SYSTEMVERILOG_FILE regfile.sv
 set_global_assignment -name SYSTEMVERILOG_FILE riscv.sv
+set_global_assignment -name SYSTEMVERILOG_FILE stage_dispatch.sv
 set_global_assignment -name SYSTEMVERILOG_FILE stage_ex.sv
 set_global_assignment -name SYSTEMVERILOG_FILE stage_id.sv
+set_global_assignment -name SYSTEMVERILOG_FILE stage_issue.sv
 set_global_assignment -name NUM_PARALLEL_PROCESSORS ALL
 
 #============================================================
