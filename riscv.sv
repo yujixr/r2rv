@@ -2,20 +2,12 @@
 // D: Data, A: Address, M: access Mode, E: Enabler-signal
 // 1...3: regfile1...3, M: Memory
 
-// execution unit
-parameter ALU    = 3'b000;
-parameter BRANCH = 3'b001;
-parameter MUL    = 3'b010;
-parameter DIV    = 3'b011;
-parameter LOAD   = 3'b100;
-parameter STORE  = 3'b101;
-
 module riscv(
   input logic clk, reset,
   output logic [31:0] pc,
   input logic [31:0] instr,
   output logic wem,
-  output logic [2:0] rwmm,
+  output ldst_mode rwmm,
   output logic [31:0] rwam, wdm,
   input logic [31:0] rdm
 );
@@ -38,7 +30,8 @@ flopr #(32) IFID_pc(clk, reset_or_flash, pc, ID_pc);
 
 // ID Instruction Decode and register fetch
 
-logic [2:0] Unit, ID_rwmm;
+unit Unit;
+ldst_mode ID_rwmm;
 logic [4:0] Dest;
 logic [9:0] Op;
 logic [31:0] Vj, Vk, A;
@@ -48,7 +41,8 @@ id id(.clk, .reset, .wa3, .instr(ID_instr), .pc(ID_pc), .wd3,
 
 // BATON ZONE: ID -> EX
 
-logic [2:0] EX_Unit, EX_rwmm;
+unit EX_Unit;
+ldst_mode EX_rwmm;
 logic [4:0] EX_Dest;
 logic [9:0] EX_Op;
 logic [31:0] EX_Vj, EX_Vk, EX_A, EX_pc;

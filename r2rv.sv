@@ -63,7 +63,7 @@ module r2rv(
 //=======================================================
 
   logic we, clk;
-  logic [2:0] rwm;
+  ldst_mode rwm;
   logic [31:0] pc, instr, rwa, rd2, wd3;
 
 

@@ -1,19 +1,12 @@
 parameter RAM_SIZE_LOG = 8;
 parameter RAM_SIZE = 2**RAM_SIZE_LOG;
 
-parameter BYTE        = 3'b000;
-parameter HALF_WORD   = 3'b001;
-parameter WORD        = 3'b010;
-parameter U_BYTE      = 3'b100;
-parameter U_HALF_WORD = 3'b101;
-
-
 module writer(
   input logic clk,
   input logic [31:0] RAM_READ[RAM_SIZE-1:0],
   output logic [31:0] RAM_WRITE[RAM_SIZE-1:0],
   input logic enabler,
-  input logic [2:0] mode,
+  input ldst_mode mode,
   input logic [RAM_SIZE_LOG-1:0] addr,
   input logic [31:0] data
 );
@@ -34,7 +27,7 @@ endmodule
 
 module reader(
   input logic [31:0] RAM[RAM_SIZE-1:0],
-  input logic [2:0] mode,
+  input ldst_mode mode,
   input logic [RAM_SIZE_LOG-1:0] addr,
   output logic [31:0] data
 );
@@ -47,7 +40,7 @@ endmodule
 module mem(
   input logic clk, we,
   input logic [31:0] ra1, ra2, wa3,
-  input logic [2:0] rm1, rm2, wm3,
+  input ldst_mode rm1, rm2, wm3,
   input logic [31:0] wd3,
   output logic [31:0] rd1, rd2,
   output logic [6:0] HEX0, HEX1, HEX2, HEX3, HEX4, HEX5

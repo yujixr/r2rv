@@ -28,7 +28,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE riscv.sv
 set_global_assignment -name SYSTEMVERILOG_FILE stage_dispatch.sv
 set_global_assignment -name SYSTEMVERILOG_FILE stage_ex.sv
 set_global_assignment -name SYSTEMVERILOG_FILE stage_id.sv
-set_global_assignment -name SYSTEMVERILOG_FILE stage_issue.sv
+set_global_assignment -name SYSTEMVERILOG_FILE stage_wakeup.sv
 set_global_assignment -name NUM_PARALLEL_PROCESSORS ALL
 
 #============================================================

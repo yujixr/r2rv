@@ -2,7 +2,8 @@ module id(
   input logic clk, reset,
   input logic [4:0] wa3,
   input logic [31:0] instr, pc, wd3,
-  output logic [2:0] Unit, rwmm,
+  output unit Unit,
+  output ldst_mode rwmm,
   output logic [4:0] Dest,
   output logic [9:0] Op,
   output logic [31:0] Vj, Vk, A

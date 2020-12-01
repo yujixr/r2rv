@@ -1,7 +1,8 @@
 module decoder(
   input logic [31:0] instr, pc,
   output logic A_rdy,
-  output logic [2:0] Unit, rwmm,
+  output unit Unit,
+  output ldst_mode rwmm,
   output logic [4:0] Qj, Qk, Dest,
   output logic [9:0] Op,
   output logic [31:0] Vj, Vk, A
@@ -20,7 +21,8 @@ parameter C_STORE     = 7'b0100011;
 parameter C_MISC_MEM  = 7'b0001111;
 parameter C_SYSTEM    = 7'b1110011;
 
-logic [2:0] funct3, _Unit;
+unit _Unit;
+logic [2:0] funct3;
 logic [4:0] _Qj, _Qk, _Dest;
 logic [6:0] funct7, opcode;
 logic [9:0] OP_IMM_Op;
@@ -43,22 +45,22 @@ assign funct7 = instr[31:25];
 
 assign OP_IMM_Op = { funct3, (funct3==3'b101) ? funct7 : 7'b0 };
 
-assign _Unit = Op[0] ? (Op[9] ? DIV : MUL) : ALU;
+assign _Unit = unit'(Op[0] ? (Op[9] ? DIV : MUL) : ALU);
 
 always_comb
   case (opcode)
-    C_OP_IMM:   begin Unit = _Unit;  Op = OP_IMM_Op;          Qj = _Qj;  Qk = 5'b0; Vj = 32'b0; Vk = imm_i; A = 32'b0;      A_rdy = 1; Dest = _Dest; rwmm = 3'b0;   end
-    C_LUI:      begin Unit = ALU;    Op = 10'b0;              Qj = 5'b0; Qk = 5'b0; Vj = 32'b0; Vk = imm_u; A = 32'b0;      A_rdy = 1; Dest = _Dest; rwmm = 3'b0;   end
-    C_AUIPC:    begin Unit = ALU;    Op = 10'b0;              Qj = 5'b0; Qk = 5'b0; Vj = pc;    Vk = imm_u; A = 32'b0;      A_rdy = 1; Dest = _Dest; rwmm = 3'b0;   end
-    C_OP:       begin Unit = _Unit;  Op = { funct3, funct7 }; Qj = _Qj;  Qk = _Qk;  Vj = 32'b0; Vk = 32'b0; A = 32'b0;      A_rdy = 1; Dest = _Dest; rwmm = 3'b0;   end
-    C_JAL:      begin Unit = BRANCH; Op = 10'b0;              Qj = 5'b0; Qk = 5'b0; Vj = 32'b0; Vk = 32'b0; A = pc + imm_j; A_rdy = 1; Dest = _Dest; rwmm = 3'b0;   end
-    C_JALR:     begin Unit = BRANCH; Op = { funct3, 7'b0 };   Qj = _Qj;  Qk = _Qj;  Vj = 32'b0; Vk = 32'b0; A = imm_i;      A_rdy = 0; Dest = _Dest; rwmm = 3'b0;   end
-    C_BRANCH:   begin Unit = BRANCH; Op = { funct3, 7'b0 };   Qj = _Qj;  Qk = _Qk;  Vj = 32'b0; Vk = 32'b0; A = pc + imm_b; A_rdy = 1; Dest = 5'b0;  rwmm = 3'b0;   end
-    C_LOAD:     begin Unit = LOAD;   Op = { funct3, 7'b0 };   Qj = _Qj;  Qk = 5'b0; Vj = 32'b0; Vk = 32'b0; A = imm_i;      A_rdy = 0; Dest = _Dest; rwmm = funct3; end
-    C_STORE:    begin Unit = STORE;  Op = { funct3, 7'b0 };   Qj = _Qj;  Qk = _Qk;  Vj = 32'b0; Vk = 32'b0; A = imm_s;      A_rdy = 0; Dest = 5'b0;  rwmm = funct3; end
-    C_MISC_MEM: begin Unit = ALU;    Op = { funct3, 7'b0 };   Qj = _Qj;  Qk = 5'b0; Vj = 32'b0; Vk = 32'b0; A = 32'b0;      A_rdy = 1; Dest = 5'b0;  rwmm = 3'b0;   end
-    C_SYSTEM:   begin Unit = ALU;    Op = { funct3, 7'b0 };   Qj = 5'b0; Qk = 5'b0; Vj = 32'b0; Vk = 32'b0; A = 32'b0;      A_rdy = 1; Dest = 5'b0;  rwmm = 3'b0;   end
-    default:    begin Unit = ALU;    Op = 10'b0;              Qj = 5'b0; Qk = 5'b0; Vj = 32'b0; Vk = 32'b0; A = 32'b0;      A_rdy = 1; Dest = 5'b0;  rwmm = 3'b0;   end
+    C_OP_IMM:   begin Unit = _Unit;  Op = OP_IMM_Op;          Qj = _Qj;  Qk = 5'b0; Vj = 32'b0; Vk = imm_i; A = 32'b0;      A_rdy = 1; Dest = _Dest; rwmm = BYTE; end
+    C_LUI:      begin Unit = ALU;    Op = 10'b0;              Qj = 5'b0; Qk = 5'b0; Vj = 32'b0; Vk = imm_u; A = 32'b0;      A_rdy = 1; Dest = _Dest; rwmm = BYTE; end
+    C_AUIPC:    begin Unit = ALU;    Op = 10'b0;              Qj = 5'b0; Qk = 5'b0; Vj = pc;    Vk = imm_u; A = 32'b0;      A_rdy = 1; Dest = _Dest; rwmm = BYTE; end
+    C_OP:       begin Unit = _Unit;  Op = { funct3, funct7 }; Qj = _Qj;  Qk = _Qk;  Vj = 32'b0; Vk = 32'b0; A = 32'b0;      A_rdy = 1; Dest = _Dest; rwmm = BYTE; end
+    C_JAL:      begin Unit = BRANCH; Op = 10'b0;              Qj = 5'b0; Qk = 5'b0; Vj = 32'b0; Vk = 32'b0; A = pc + imm_j; A_rdy = 1; Dest = _Dest; rwmm = BYTE; end
+    C_JALR:     begin Unit = BRANCH; Op = { funct3, 7'b0 };   Qj = _Qj;  Qk = _Qj;  Vj = 32'b0; Vk = 32'b0; A = imm_i;      A_rdy = 0; Dest = _Dest; rwmm = BYTE; end
+    C_BRANCH:   begin Unit = BRANCH; Op = { funct3, 7'b0 };   Qj = _Qj;  Qk = _Qk;  Vj = 32'b0; Vk = 32'b0; A = pc + imm_b; A_rdy = 1; Dest = 5'b0;  rwmm = BYTE; end
+    C_LOAD:     begin Unit = LOAD;   Op = { funct3, 7'b0 };   Qj = _Qj;  Qk = 5'b0; Vj = 32'b0; Vk = 32'b0; A = imm_i;      A_rdy = 0; Dest = _Dest; rwmm = ldst_mode'(funct3); end
+    C_STORE:    begin Unit = STORE;  Op = { funct3, 7'b0 };   Qj = _Qj;  Qk = _Qk;  Vj = 32'b0; Vk = 32'b0; A = imm_s;      A_rdy = 0; Dest = 5'b0;  rwmm = ldst_mode'(funct3); end
+    C_MISC_MEM: begin Unit = ALU;    Op = { funct3, 7'b0 };   Qj = _Qj;  Qk = 5'b0; Vj = 32'b0; Vk = 32'b0; A = 32'b0;      A_rdy = 1; Dest = 5'b0;  rwmm = BYTE; end
+    C_SYSTEM:   begin Unit = ALU;    Op = { funct3, 7'b0 };   Qj = 5'b0; Qk = 5'b0; Vj = 32'b0; Vk = 32'b0; A = 32'b0;      A_rdy = 1; Dest = 5'b0;  rwmm = BYTE; end
+    default:    begin Unit = ALU;    Op = 10'b0;              Qj = 5'b0; Qk = 5'b0; Vj = 32'b0; Vk = 32'b0; A = 32'b0;      A_rdy = 1; Dest = 5'b0;  rwmm = BYTE; end
   endcase
 
 endmodule
