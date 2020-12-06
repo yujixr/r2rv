@@ -1,97 +1,126 @@
-// R: Read, W: Write, RW: Read-Write
-// D: Data, A: Address, M: access Mode, E: Enabler-signal
-// 1...3: regfile1...3, M: Memory
-
-// execution unit
-parameter ALU    = 3'b000;
-parameter BRANCH = 3'b001;
-parameter MUL    = 3'b010;
-parameter DIV    = 3'b011;
-parameter LOAD   = 3'b100;
-parameter STORE  = 3'b101;
-
 module riscv(
   input logic clk, reset,
-  output logic [31:0] pc,
-  input logic [31:0] instr,
-  output logic wem,
-  output logic [2:0] rwmm,
-  output logic [31:0] rwam, wdm,
-  input logic [31:0] rdm
+
+  // Memory Bus
+  // R: Read, W: Write
+  // D: Data, A: Address, M: Mode, E: Enable
+  input logic [31:0] rd[4],
+  output logic we,
+  output logic [31:0] ra[4], wa, wd,
+  output ldst_mode rm[4], wm
 );
 
-// BATON ZONE: EX -> IF
+// Data Storage
+entry entries[BUF_SIZE];
 
-flopr #(32) pc_reg(clk, reset, pc_next, pc);
+regfile rf(
+  .clk, .reset, .ra(reg_read_addr),
+  .wa(reg_write_addr), .wd(reg_write_data), .rd(reg_read_data)
+);
 
-// IF Instruction Fetch
+buffer bf(
+  .clk, .reset, .is_valid_allocation, .is_tag_flooded,
+  .allocation_indexes, .entries_new(DI_entries_new), .ex_contents(WU_ex_contents), .results(BF_results),
+  .is_really_commited, .is_commited_store(is_store), .commited_tags(CM_tags), .entries
+);
 
-logic [31:0] pc_plus4;
-assign pc_plus4 = pc + 4;
+// Flash front end
+logic flash;
+assign flash = reset | is_branch_established;
 
-// BATON ZONE: IF -> ID
+// Instruction Fetch
+logic [31:0] IF_is_valid[2], pc[2], instr[2];
 
-logic [31:0] ID_instr, ID_pc;
+fetch STAGE_IF(
+  .clk, .reset, .can_proceed,
+  .is_branch_established, .jumped_to, .is_valid(IF_is_valid), .pc
+);
 
-flopr #(32) IFID_instr(clk, reset_or_flash, instr, ID_instr);
-flopr #(32) IFID_pc(clk, reset_or_flash, pc, ID_pc);
+assign ra[0] = pc[0];
+assign ra[1] = pc[1];
+assign rm[0] = WORD;
+assign rm[1] = WORD;
+assign instr[0] = rd[0];
+assign instr[1] = rd[1];
 
-// ID Instruction Decode and register fetch
+// IF -> ID
+logic ID_is_valid[2];
+logic [31:0] ID_instr[2], ID_pc[2];
+twinflop #(1) IFID_is_valid(clk, flash, can_proceed, IF_is_valid, ID_is_valid);
+twinflop #(32) IFID_instr(clk, flash, can_proceed, instr, ID_instr);
+twinflop #(32) IFID_pc(clk, flash, can_proceed, pc, ID_pc);
 
-logic [2:0] Unit, ID_rwmm;
-logic [4:0] Dest;
-logic [9:0] Op;
-logic [31:0] Vj, Vk, A;
+// Instruction Decode
+decode_result decoded[2];
 
-id id(.clk, .reset, .wa3, .instr(ID_instr), .pc(ID_pc), .wd3,
-  .Unit, .rwmm(ID_rwmm), .Dest, .Op, .Vj, .Vk, .A);
+id STAGE_ID(.is_valid(ID_is_valid), .instr(ID_instr), .pc(ID_pc), .decoded);
 
-// BATON ZONE: ID -> EX
+// ID -> DI
+decode_result DI_decoded[2];
+twinflop #($bits(decode_result)) IDDI_decoded(clk, flash, can_proceed, decoded, DI_decoded);
 
-logic [2:0] EX_Unit, EX_rwmm;
-logic [4:0] EX_Dest;
-logic [9:0] EX_Op;
-logic [31:0] EX_Vj, EX_Vk, EX_A, EX_pc;
+// Dispatch
+logic is_valid_allocation[2], can_proceed[2], is_tag_flooded;
+logic [4:0] reg_read_addr[4];
+logic [31:0] reg_read_data[4];
+logic [BUF_SIZE_LOG-1:0] allocation_indexes[2];
+entry DI_entries_new[2];
 
-flopr #(3) IDEX_Unit(clk, reset_or_flash, Unit, EX_Unit);
-flopr #(3) IDEX_rwmm(clk, reset_or_flash, ID_rwmm, EX_rwmm);
-flopr #(5) IDEX_Dest(clk, reset_or_flash, Dest, EX_Dest);
-flopr #(10) IDEX_Op(clk, reset_or_flash, Op, EX_Op);
-flopr #(32) IDEX_Vj(clk, reset_or_flash, Vj, EX_Vj);
-flopr #(32) IDEX_Vk(clk, reset_or_flash, Vk, EX_Vk);
-flopr #(32) IDEX_A(clk, reset_or_flash, A, EX_A);
-flopr #(32) IDEX_pc(clk, reset_or_flash, ID_pc, EX_pc);
+dispatch STAGE_DI(
+  .entries_all(entries), .reg_data(reg_read_data), .decoded(DI_decoded),
+  .is_valid(is_valid_allocation), .is_allocatable(can_proceed), .is_tag_flooded,
+  .reg_addr(reg_read_addr), .entries_new(DI_entries_new), .indexes(allocation_indexes)
+);
 
-// EX EXecute & memory access
+// Wakeup
+ex_content WU_ex_contents[2];
 
-logic is_branched, reset_or_flash;
-logic [31:0] pc_next, result;
+wakeup STAGE_WU(.is_tag_flooded, .entries, .ex_contents(WU_ex_contents));
 
-ex ex(.Unit(EX_Unit), .Op(EX_Op), .pc(EX_pc),
-  .rdm, .Vj(EX_Vj), .Vk(EX_Vk), .is_branched, .result);
+// WU -> EX
+ex_content EX_ex_contents[2];
+flopr #($bits(ex_content)) WUEX_ex_contents_1(clk, reset, WU_ex_contents[0], EX_ex_contents[0]);
+flopr #($bits(ex_content)) WUEX_ex_contents_2(clk, reset, WU_ex_contents[1], EX_ex_contents[1]);
 
-assign wem = (EX_Unit==STORE);
-assign rwmm = EX_rwmm;
-assign rwam = EX_A;
-assign wdm = EX_Vk;
+// Execute
+logic is_branch_established;
+logic [31:0] load_addr[2], load_data[2], jumped_to;
+ldst_mode load_mode[2];
+ex_result results[2];
 
-assign reset_or_flash = reset | is_branched;
-mux2 #(32) select_pc_next(pc_plus4, { EX_A[31:1], 1'b0 }, is_branched, pc_next);
+ex STAGE_EX(
+  .is_tag_flooded, .ex_contents(EX_ex_contents), .load_data,
+  .load_mode, .load_addr, .is_branch_established, .jumped_to, .results
+);
 
-// BATON ZONE: EX -> WB
+assign ra[2] = load_addr[0];
+assign ra[3] = load_addr[1];
+assign rm[2] = load_mode[0];
+assign rm[3] = load_mode[1];
+assign load_data[0] = rd[2];
+assign load_data[1] = rd[3];
 
-logic [4:0] WB_Dest;
-logic [31:0] WB_result;
+// EX -> BF
+ex_result BF_results[2];
+flopr #($bits(ex_result)) EXBF_results_1(clk, reset, results[0], BF_results[0]);
+flopr #($bits(ex_result)) EXBF_results_2(clk, reset, results[1], BF_results[1]);
 
-flopr #(5) EXWB_Dest(clk, reset, EX_Dest, WB_Dest);
-flopr #(32) EXWB_result(clk, reset, result, WB_result);
+// Commit
+logic is_really_commited[2], is_store[2], store_enable;
+logic [4:0] reg_write_addr[2];
+logic [31:0] store_addr, store_data, reg_write_data[2];
+logic [BUF_SIZE_LOG:0] CM_tags[2];
+ldst_mode store_mode;
 
-// WB Write-Back
+commit STAGE_CM(
+  .is_tag_flooded, .entries, .is_valid(is_really_commited), .is_store, .tags(CM_tags),
+  .store_enable, .store_mode, .reg_addr(reg_write_addr), .store_addr,
+  .store_data, .reg_data(reg_write_data)
+);
 
-logic [4:0] wa3;
-logic [31:0] wd3;
-
-assign wa3 = WB_Dest;
-assign wd3 = WB_result;
+assign we = store_enable;
+assign wm = store_mode;
+assign wa = store_addr;
+assign wd = store_data;
 
 endmodule

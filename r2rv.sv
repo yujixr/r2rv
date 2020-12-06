@@ -63,8 +63,8 @@ module r2rv(
 //=======================================================
 
   logic we, clk;
-  logic [2:0] rwm;
-  logic [31:0] pc, instr, rwa, rd2, wd3;
+  logic [31:0] ra[4], wa, rd[4], wd;
+  ldst_mode rm[4], wm;
 
 
 
@@ -73,12 +73,10 @@ module r2rv(
 //=======================================================
 
   assign LEDR = SW;
-  assign clk = CLOCK_50;
+  assign clk = KEY[0];
 
-  riscv riscv(.clk, .reset(!RESET_N), .pc, .instr,
-	.wem(we), .rwmm(rwm), .rwam(rwa), .wdm(wd3), .rdm(rd2));
-  mem mem(.clk, .we, .ra1(pc), .ra2(rwa), .wa3(rwa), 
-    .rm1(WORD), .rm2(rwm), .wm3(rwm), .rd1(instr), .rd2, .wd3,
+  riscv riscv(.clk, .reset(!RESET_N), .we, .ra, .wa, .rm, .wm, .rd, .wd);
+  mem mem(.clk, .we, .ra, .wa, .rm, .wm, .rd, .wd,
     .HEX0, .HEX1, .HEX2, .HEX3, .HEX4, .HEX5);
 
 

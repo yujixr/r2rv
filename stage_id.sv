@@ -1,26 +1,30 @@
+typedef struct packed {
+  logic is_valid;
+  unit Unit;
+  logic A_rdy;
+  ldst_mode rwmm;
+  logic [4:0] Qj, Qk, Dest;
+  logic [9:0] Op;
+  logic [31:0] Vj, Vk, A, pc;
+} decode_result;
+
 module id(
-  input logic clk, reset,
-  input logic [4:0] wa3,
-  input logic [31:0] instr, pc, wd3,
-  output logic [2:0] Unit, rwmm,
-  output logic [4:0] Dest,
-  output logic [9:0] Op,
-  output logic [31:0] Vj, Vk, A
+  input logic is_valid[2],
+  input logic [31:0] instr[2], pc[2],
+  output decode_result decoded[2]
 );
 
-logic A_rdy;
-logic [4:0] Qj, Qk;
-logic [31:0] rd1, rd2, _Vj, _Vk, _A;
+genvar i;
+generate
+  for (i = 0; i < 2; i++) begin: decode_instructions
+    assign decoded[i].is_valid = is_valid[i];
+    assign decoded[i].pc = pc[i];
 
-decoder decode(.instr, .pc,
-  .A_rdy, .Unit, .rwmm, .Op, .Qj, .Qk, .Dest,
-  .Vj(_Vj), .Vk(_Vk), .A(_A));
-
-regfile rf(.clk, .reset, .ra1(Qj), .ra2(Qk),
-  .wa3, .rd1, .rd2, .wd3);
-
-assign Vj = (Qj==5'b0) ? _Vj : rd1;
-assign Vk = (Qk==5'b0) ? _Vk : rd2;
-assign A = A_rdy ? _A : _A + rd1;
+    decoder decode(.instr(instr[i]), .pc(pc[i]),
+      .A_rdy(decoded[i].A_rdy), .Unit(decoded[i].Unit), .rwmm(decoded[i].rwmm),
+      .Op(decoded[i].Op), .Qj(decoded[i].Qj), .Qk(decoded[i].Qk),
+      .Dest(decoded[i].Dest), .Vj(decoded[i].Vj), .Vk(decoded[i].Vk), .A(decoded[i].A));
+  end
+endgenerate
 
 endmodule
