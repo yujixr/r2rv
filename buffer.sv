@@ -37,7 +37,7 @@ typedef struct packed {
   unit Unit;
   ldst_mode rwmm;
   logic [4:0] Dest;
-  logic [5:0] speculative_tag;
+  logic [5:0] speculative_tag, specific_speculative_tag;
   logic [9:0] Op;
   logic [31:0] Vj, Vk, A, pc, result;
   logic [BUF_SIZE_LOG-1:0] number_of_early_store_ops;
@@ -48,19 +48,15 @@ module buffer(
   input logic clk, reset,
 
   // from DISPATCH stage
-  input logic is_valid_allocation[2],
+  input logic is_valid_allocation[2], is_tag_flooded,
   input logic [BUF_SIZE_LOG-1:0] allocation_indexes[2],
-  input logic entries_new[2],
+  input entry entries_new[2],
 
   // from WAKEUP stage
-  input logic is_valid_execution[2],
-  input logic [BUF_SIZE_LOG:0] waked_tags[2],
+  input ex_content ex_contents[2],
 
   // from EX stage
-  input logic is_valid_result[2],
-  input logic [31:0] results[2],
-  input ex_mode ex_modes[2],
-  input logic [BUF_SIZE_LOG:0] results_tags[2],
+  input ex_result results[2],
 
   // from COMMIT stage
   input logic is_really_commited[2], is_commited_store[2],
@@ -70,62 +66,77 @@ module buffer(
 );
 
 entry entries_next[BUF_SIZE];
+logic [5:0] _speculative_tag[BUF_SIZE];
 
 genvar i;
 generate
   for (i = 0; i < BUF_SIZE; i++) begin: Reg
-    always_ff @(negedge clk)
-      if (reset) entries[i] <= 0;
+    always_comb
+      if (reset) begin
+        entries_next[i] = 0;
+      end
 
       // from COMMIT stage
       else if ((entries[i].tag == commited_tags[0] && is_really_commited[0])
         || (entries[i].tag == commited_tags[1] && is_really_commited[1])) begin
-        entries[i] <= 0;
+        entries_next[i] = 0;
       end
 
       // from DISPATCH stage
       else if (i == allocation_indexes[0] && is_valid_allocation[0]) begin
-        entries[i] <= entries_new[0];
+        entries_next[i] = entries_new[0];
       end
       else if (i == allocation_indexes[1] && is_valid_allocation[1]) begin
-        entries[i] <= entries_new[1];
+        entries_next[i] = entries_new[1];
+      end
+
+      // from EX stage
+      else if (results[0].is_branch_established && entries[i].specific_speculative_tag != results[0].speculative_tag
+        && (entries[i].speculative_tag & results[0].speculative_tag) != 6'b000000) begin
+        entries_next[i] = 0;
+      end
+      else if (results[1].is_branch_established && entries[i].specific_speculative_tag != results[1].speculative_tag
+        && (entries[i].speculative_tag & results[1].speculative_tag) != 6'b000000) begin
+        entries_next[i] = 0;
       end
       else begin
 
-        // from WAKEUP & EX stage
-        if ((waked_tags[0] == entries[i].tag && is_valid_execution[0])
-          || (waked_tags[1] == entries[i].tag && is_valid_execution[1])) begin
+        // from WAKEUP stage
+        if ((ex_contents[0].tag == entries[i].tag && ex_contents[0].is_valid)
+          || (ex_contents[0].tag == entries[i].tag && ex_contents[1].is_valid)) begin
           entries_next[i].e_state = S_EXECUTING;
           entries_next[i].result = entries[i].result;
           entries_next[i].A_rdy = entries[i].A_rdy;
           entries_next[i].A = entries[i].A;
         end
-        else if (results_tags[0] == entries[i].tag && is_valid_result[0]) begin
-          if (ex_modes[0] == EX_NORMAL) begin
-            entries_next[i].e_state = S_EXECUTED;
-            entries_next[i].result = results[0];
-            entries_next[i].A_rdy = entries[i].A_rdy;
-            entries_next[i].A = entries[i].A;
-          end
-          else begin
+
+        // from EX stage
+        else if (results[0].tag == entries[i].tag && results[0].is_valid) begin
+          if (results[0].mode == EX_GEN_ADDR) begin
             entries_next[i].e_state = (entries[i].Unit == STORE) ? S_EXECUTED : S_ADDR_GENERATED;
             entries_next[i].result = entries[i].result;
             entries_next[i].A_rdy = 1;
-            entries_next[i].A = results[0];
+            entries_next[i].A = results[0].result;
+          end
+          else begin
+            entries_next[i].e_state = S_EXECUTED;
+            entries_next[i].result = results[0].result;
+            entries_next[i].A_rdy = entries[i].A_rdy;
+            entries_next[i].A = entries[i].A;
           end
         end
-        else if (results_tags[1] == entries[i].tag && is_valid_result[1]) begin
-          if (ex_modes[1] == EX_NORMAL) begin
-            entries_next[i].e_state = S_EXECUTED;
-            entries_next[i].result = results[1];
-            entries_next[i].A_rdy = entries[i].A_rdy;
-            entries_next[i].A = entries[i].A;
-          end
-          else begin
+        else if (results[1].tag == entries[i].tag && results[1].is_valid) begin
+          if (results[1].mode == EX_GEN_ADDR) begin
             entries_next[i].e_state = (entries[i].Unit == STORE) ? S_EXECUTED : S_ADDR_GENERATED;
             entries_next[i].result = entries[i].result;
             entries_next[i].A_rdy = 1;
-            entries_next[i].A = results[1];
+            entries_next[i].A = results[1].result;
+          end
+          else begin
+            entries_next[i].e_state = S_EXECUTED;
+            entries_next[i].result = results[1].result;
+            entries_next[i].A_rdy = entries[i].A_rdy;
+            entries_next[i].A = entries[i].A;
           end
         end
         else begin
@@ -136,15 +147,15 @@ generate
         end
 
         // Operand J
-        if (!entries[i].J_rdy && results_tags[0] == entries[i].Qj && ex_modes[0] == EX_NORMAL && is_valid_result[0]) begin
+        if (!entries[i].J_rdy && results[0].tag == entries[i].Qj && results[0].mode == EX_NORMAL && results[0].is_valid) begin
           entries_next[i].J_rdy = 1;
           entries_next[i].Qj = 0;
-          entries_next[i].Vj = results[0];
+          entries_next[i].Vj = results[0].result;
         end
-        else if (!entries[i].J_rdy && results_tags[1] == entries[i].Qj && ex_modes[1] == EX_NORMAL && is_valid_result[1]) begin
+        else if (!entries[i].J_rdy && results[1].tag == entries[i].Qj && results[1].mode == EX_NORMAL && results[1].is_valid) begin
           entries_next[i].J_rdy = 1;
           entries_next[i].Qj = 0;
-          entries_next[i].Vj = results[1];
+          entries_next[i].Vj = results[1].result;
         end
         else begin
           entries_next[i].J_rdy = entries[i].J_rdy;
@@ -153,15 +164,15 @@ generate
         end
 
         // Operand K
-        if (!entries[i].K_rdy && results_tags[0] == entries[i].Qk && ex_modes[0] == EX_NORMAL && is_valid_result[0]) begin
+        if (!entries[i].K_rdy && results[0].tag == entries[i].Qk && results[0].mode == EX_NORMAL && results[0].is_valid) begin
           entries_next[i].K_rdy = 1;
           entries_next[i].Qk = 0;
-          entries_next[i].Vk = results[0];
+          entries_next[i].Vk = results[0].result;
         end
-        else if (!entries[i].K_rdy && results_tags[1] == entries[i].Qk && ex_modes[1] == EX_NORMAL && is_valid_result[1]) begin
+        else if (!entries[i].K_rdy && results[1].tag == entries[i].Qk && results[1].mode == EX_NORMAL && results[1].is_valid) begin
           entries_next[i].K_rdy = 1;
           entries_next[i].Qk = 0;
-          entries_next[i].Vk = results[1];
+          entries_next[i].Vk = results[1].result;
         end
         else begin
           entries_next[i].K_rdy = entries[i].K_rdy;
@@ -170,30 +181,41 @@ generate
         end
 
         if ((is_really_commited[0] && is_commited_store[0]) || (is_really_commited[1] && is_commited_store[1])) begin
-          entries_next[i].number_of_early_store_ops = entries[i].number_of_early_store_ops - 1;
+          entries_next[i].number_of_early_store_ops = entries[i].number_of_early_store_ops - BUF_SIZE_LOG'(1);
         end
         else begin
           entries_next[i].number_of_early_store_ops = entries[i].number_of_early_store_ops;
         end
 
-        entries[i].J_rdy            <= entries_next[i].J_rdy;
-        entries[i].K_rdy            <= entries_next[i].K_rdy;
-        entries[i].A_rdy            <= entries_next[i].A_rdy;
-        entries[i].e_state          <= entries_next[i].e_state;
-        entries[i].Unit             <= entries[i].Unit;
-        entries[i].rwmm             <= entries[i].rwmm;
-        entries[i].Dest             <= entries[i].Dest;
-        entries[i].speculative_tag  <= entries[i].speculative_tag;
-        entries[i].Op               <= entries[i].Op;
-        entries[i].Vj               <= entries_next[i].Vj;
-        entries[i].Vk               <= entries_next[i].Vk;
-        entries[i].A                <= entries_next[i].A;
-        entries[i].pc               <= entries[i].pc;
-        entries[i].result           <= entries_next[i].result;
-        entries[i].Qj               <= entries_next[i].Qj;
-        entries[i].Qk               <= entries_next[i].Qk;
-        entries[i].tag              <= entries[i].tag;
+        if (!results[0].is_branch_established) begin
+          _speculative_tag[i] = entries[i].speculative_tag & (~results[0].speculative_tag);
+        end
+        else begin
+          _speculative_tag[i] = entries[i].speculative_tag;
+        end
+        if (!results[1].is_branch_established) begin
+          entries_next[i] = _speculative_tag[i] & (~results[1].speculative_tag);
+        end
+        else begin
+          entries_next[i] = _speculative_tag[i];
+        end
+
+        if (is_tag_flooded) begin
+          entries_next[i].tag = { 1'b1, entries[i].tag[BUF_SIZE_LOG-1:0] };
+        end
+        else begin
+          entries_next[i].tag = entries[i].tag;
+        end
+
+        entries_next[i].Unit            = entries[i].Unit;
+        entries_next[i].rwmm            = entries[i].rwmm;
+        entries_next[i].Dest            = entries[i].Dest;
+        entries_next[i].Op              = entries[i].Op;
+        entries_next[i].pc              = entries[i].pc;
       end
+
+    always_ff @(negedge clk)
+      entries[i] <= entries_next[i];
   end
 endgenerate
 

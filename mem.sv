@@ -39,10 +39,10 @@ endmodule
 
 module mem(
   input logic clk, we,
-  input logic [31:0] ra1, ra2, wa3,
-  input ldst_mode rm1, rm2, wm3,
-  input logic [31:0] wd3,
-  output logic [31:0] rd1, rd2,
+  input logic [31:0] ra[4], wa,
+  input ldst_mode rm[4], wm,
+  input logic [31:0] wd,
+  output logic [31:0] rd[4],
   output logic [6:0] HEX0, HEX1, HEX2, HEX3, HEX4, HEX5
 );
 
@@ -53,9 +53,11 @@ initial begin
   $readmemh("dmem.dat", dmem);
 end
 
-reader read1(imem, rm1, ra1[RAM_SIZE_LOG+1:2], rd1);
-reader read2(dmem, rm2, ra2[RAM_SIZE_LOG+1:2], rd2);
-writer write(clk, dmem, dmem, we, wm3, wa3[RAM_SIZE_LOG+1:2], wd3);
+reader read1(imem, rm[0], ra[0][RAM_SIZE_LOG+1:2], rd[0]);
+reader read2(imem, rm[1], ra[1][RAM_SIZE_LOG+1:2], rd[1]);
+reader read3(dmem, rm[2], ra[2][RAM_SIZE_LOG+1:2], rd[2]);
+reader read4(dmem, rm[3], ra[3][RAM_SIZE_LOG+1:2], rd[3]);
+writer write(clk, dmem, dmem, we, wm, wa[RAM_SIZE_LOG+1:2], wd);
 
 assign stdout = dmem['h3f];
 
