@@ -73,7 +73,7 @@ module r2rv(
 //=======================================================
 
   assign LEDR = SW;
-  assign clk = CLOCK_50;
+  assign clk = KEY[0];
 
   riscv riscv(.clk, .reset(!RESET_N), .we, .ra, .wa, .rm, .wm, .rd, .wd);
   mem mem(.clk, .we, .ra, .wa, .rm, .wm, .rd, .wd,

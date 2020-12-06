@@ -136,9 +136,9 @@ logic [BUF_SIZE_LOG:0] mintag[BUF_SIZE];
 logic [5:0] _spec_tag[BUF_SIZE];
 logic [BUF_SIZE_LOG-1:0] _number_of_store_ops[BUF_SIZE];
 
-assign _is_valid[0]            = entries[0].e_state != S_NOT_USED;
-assign mintag[0]               = entries[0].tag;
-assign _spec_tag[0]            = entries[0].speculative_tag;
+assign _is_valid[0] = entries[0].e_state != S_NOT_USED;
+assign mintag[0]    = entries[0].tag;
+assign _spec_tag[0] = entries[0].speculative_tag;
 
 always_comb
   if (entries[0].Unit == STORE) begin
@@ -153,9 +153,9 @@ generate
   for (i = 1; i < BUF_SIZE; i++) begin: Search
     always_comb
     if (entries[i].e_state != S_NOT_USED && (entries[i].tag < mintag[i-1] || !_is_valid[i-1])) begin
-      _is_valid[i]            = 1;
-      mintag[i]               = entries[i].tag;
-      _spec_tag[i]            = entries[i].speculative_tag;
+      _is_valid[i] = 1;
+      mintag[i]    = entries[i].tag;
+      _spec_tag[i] = entries[i].speculative_tag;
 
       if (entries[i].Unit == STORE) begin
         _number_of_store_ops[i] = entries[i].number_of_early_store_ops + BUF_SIZE_LOG'(1);

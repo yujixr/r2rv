@@ -32,7 +32,7 @@ assign flash = reset | is_branch_established;
 logic [31:0] IF_is_valid[2], pc[2], instr[2];
 
 fetch STAGE_IF(
-  .clk, .reset(flash), .can_proceed,
+  .clk, .reset, .can_proceed,
   .is_branch_established, .jumped_to, .is_valid(IF_is_valid), .pc
 );
 
@@ -109,7 +109,7 @@ flopr #($bits(ex_result)) EXBF_results_2(clk, reset, results[1], BF_results[1]);
 logic is_really_commited[2], is_store[2], store_enable;
 logic [4:0] reg_write_addr[2];
 logic [31:0] store_addr, store_data, reg_write_data[2];
-logic [BUF_SIZE_LOG-1:0] CM_tags[2];
+logic [BUF_SIZE_LOG:0] CM_tags[2];
 ldst_mode store_mode;
 
 commit STAGE_CM(

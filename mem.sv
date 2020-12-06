@@ -7,15 +7,14 @@ module writer(
   output logic [31:0] RAM_WRITE[RAM_SIZE-1:0],
   input logic enabler,
   input ldst_mode mode,
-  input logic [RAM_SIZE_LOG-1:0] addr,
-  input logic [31:0] data
+  input logic [31:0] addr, data
 );
 
 genvar i;
 generate
   for (i = 0; i < RAM_SIZE; i++) begin: Update
     always_ff @(negedge clk)
-      if ((addr==i) & enabler)
+      if ((addr[RAM_SIZE_LOG+1:2]==i) & enabler)
         RAM_WRITE[i] <= data;
       else
         RAM_WRITE[i] <= RAM_READ[i];
@@ -28,11 +27,11 @@ endmodule
 module reader(
   input logic [31:0] RAM[RAM_SIZE-1:0],
   input ldst_mode mode,
-  input logic [RAM_SIZE_LOG-1:0] addr,
+  input logic [31:0] addr,
   output logic [31:0] data
 );
 
-assign data = RAM[addr];
+assign data = RAM[addr[RAM_SIZE_LOG+1:2]];
 
 endmodule
 
@@ -53,11 +52,11 @@ initial begin
   $readmemh("dmem.dat", dmem);
 end
 
-reader read1(imem, rm[0], ra[0][RAM_SIZE_LOG+1:2], rd[0]);
-reader read2(imem, rm[1], ra[1][RAM_SIZE_LOG+1:2], rd[1]);
-reader read3(dmem, rm[2], ra[2][RAM_SIZE_LOG+1:2], rd[2]);
-reader read4(dmem, rm[3], ra[3][RAM_SIZE_LOG+1:2], rd[3]);
-writer write(clk, dmem, dmem, we, wm, wa[RAM_SIZE_LOG+1:2], wd);
+reader read1(imem, rm[0], ra[0], rd[0]);
+reader read2(imem, rm[1], ra[1], rd[1]);
+reader read3(dmem, rm[2], ra[2], rd[2]);
+reader read4(dmem, rm[3], ra[3], rd[3]);
+writer write(clk, dmem, dmem, we, wm, wa, wd);
 
 assign stdout = dmem['h3f];
 

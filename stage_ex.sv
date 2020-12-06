@@ -26,10 +26,10 @@ generate
     assign load_mode[i] = ex_contents[i].rm;
     assign load_addr[i] = ex_contents[i].A;
 
-    assign results[i].is_valid = ex_contents[i].is_valid;
-    assign results[i].mode = ex_contents[i].mode;
+    assign results[i].is_valid        = ex_contents[i].is_valid;
+    assign results[i].mode            = ex_contents[i].mode;
     assign results[i].speculative_tag = ex_contents[i].speculative_tag;
-    assign results[i].jumped_to = ex_contents[i].A;
+    assign results[i].jumped_to       = ex_contents[i].A;
 
     always_comb
       if (is_tag_flooded) begin
@@ -60,11 +60,11 @@ endgenerate
 always_comb
   if (results[1].is_branch_established) begin
     is_branch_established = 1;
-    jumped_to = ex_contents[1].A;
+    jumped_to = results[1].jumped_to;
   end
   else if (results[0].is_branch_established) begin
     is_branch_established = 1;
-    jumped_to = ex_contents[0].A;
+    jumped_to = results[0].jumped_to;
   end
   else begin
     is_branch_established = 1;
