@@ -2,10 +2,10 @@ module fetch(
   input logic clk, reset,
   input logic can_proceed[2], is_branch_established,
   input logic [31:0] jumped_to,
-  output logic [31:0] pc[2], pc_next
+  output logic [31:0] pc[2]
 );
 
-logic [31:0] pc_cur, pc_plus;
+logic [31:0] pc_cur, pc_plus, pc_next;
 
 flopr #(32) pc_reg(.clk, .reset, .d(pc_next), .q(pc_cur));
 assign pc[0] = pc_cur;

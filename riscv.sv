@@ -6,26 +6,9 @@ module riscv(
   // D: Data, A: Address, M: Mode, E: Enable
   input logic [31:0] rd[4],
   output logic we,
-  output logic [31:0] ra[4], wa, wd, outputs[10],
+  output logic [31:0] ra[4], wa, wd,
   output ldst_mode rm[4], wm
 );
-
-entry tmp1, tmp2, tmp3;
-decode_result tmp4;
-assign tmp1 = entries[14];
-assign tmp2 = entries[15];
-assign tmp3 = DI_entries_new[0];
-assign tmp4 = DI_decoded[0];
-assign outputs[0] = pc[0];
-assign outputs[1] = tmp1.e_state;
-assign outputs[2] = tmp2.e_state;
-assign outputs[3] = allocation_indexes[0];
-assign outputs[4] = allocation_indexes[1];
-assign outputs[5] = is_valid_allocation[0];
-assign outputs[6] = is_valid_allocation[1];
-assign outputs[7] = tmp4.is_valid;
-assign outputs[8] = tmp3.tag;
-assign outputs[9] = tmp3.speculative_tag;
 
 // Data Storage
 entry entries[BUF_SIZE];
@@ -42,11 +25,11 @@ buffer bf(
 );
 
 // Instruction Fetch
-logic [31:0] pc[2], instr[2], pc_next;
+logic [31:0] pc[2], instr[2];
 
 fetch STAGE_IF(
-  .clk, .reset, .can_proceed(is_valid_allocation),
-  .is_branch_established, .jumped_to, .pc, .pc_next
+  .clk, .reset, .can_proceed,
+  .is_branch_established, .jumped_to, .pc
 );
 
 assign ra[0] = pc[0];

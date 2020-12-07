@@ -66,33 +66,40 @@ module buffer(
 );
 
 entry entries_next[BUF_SIZE];
-logic [5:0] _speculative_tag[BUF_SIZE];
+logic [5:0] _speculative_tag[BUF_SIZE], _specific_speculative_tag[BUF_SIZE];
 
 genvar i;
 generate
   for (i = 0; i < BUF_SIZE; i++) begin: Reg
     flopr #($bits(entry)) ff(.clk, .reset, .d(entries_next[i]), .q(entries[i]));
     always_comb
+      // from DISPATCH stage
+      if (entries[i].e_state == S_NOT_USED) begin
+        if (i == allocation_indexes[0] && is_valid_allocation[0]) begin
+          entries_next[i] = entries_new[0];
+        end
+        else if (i == allocation_indexes[1] && is_valid_allocation[1]) begin
+          entries_next[i] = entries_new[1];
+        end
+        else begin
+          entries_next[i] = 0;
+        end
+      end
+
       // from COMMIT stage
-      if ((entries[i].tag == commited_tags[0] && is_really_commited[0])
+      else if ((entries[i].tag == commited_tags[0] && is_really_commited[0])
         || (entries[i].tag == commited_tags[1] && is_really_commited[1])) begin
         entries_next[i] = 0;
       end
 
-      // from DISPATCH stage
-      else if (i == allocation_indexes[0] && is_valid_allocation[0]) begin
-        entries_next[i] = entries_new[0];
-      end
-      else if (i == allocation_indexes[1] && is_valid_allocation[1]) begin
-        entries_next[i] = entries_new[1];
-      end
-
-      // from EX stage
-      else if (results[0].is_branch_established && entries[i].specific_speculative_tag != results[0].speculative_tag
+      // from EX stage (flash speculative entry)
+      else if (results[0].is_branch_established
+        && (entries[i].specific_speculative_tag != results[0].speculative_tag)
         && (entries[i].speculative_tag & results[0].speculative_tag) != 6'b000000) begin
         entries_next[i] = 0;
       end
-      else if (results[1].is_branch_established && entries[i].specific_speculative_tag != results[1].speculative_tag
+      else if (results[1].is_branch_established
+        && (entries[i].specific_speculative_tag != results[1].speculative_tag)
         && (entries[i].speculative_tag & results[1].speculative_tag) != 6'b000000) begin
         entries_next[i] = 0;
       end
@@ -184,17 +191,23 @@ generate
           entries_next[i].number_of_early_store_ops = entries[i].number_of_early_store_ops;
         end
 
-        if (!results[0].is_branch_established) begin
-          _speculative_tag[i] = entries[i].speculative_tag & (~results[0].speculative_tag);
+        // speculative -> normal execution
+        if (results[0].is_branch_established) begin
+          _speculative_tag[i]          = entries[i].speculative_tag & (~results[0].speculative_tag);
+          _specific_speculative_tag[i] = entries[i].specific_speculative_tag & (~results[0].speculative_tag);
         end
         else begin
-          _speculative_tag[i] = entries[i].speculative_tag;
+          _speculative_tag[i]          = entries[i].speculative_tag;
+          _specific_speculative_tag[i] = entries[i].specific_speculative_tag;
         end
-        if (!results[1].is_branch_established) begin
-          entries_next[i] = _speculative_tag[i] & (~results[1].speculative_tag);
+
+        if (results[1].is_branch_established) begin
+          entries_next[i].speculative_tag          = _speculative_tag[i] & (~results[1].speculative_tag);
+          entries_next[i].specific_speculative_tag = _specific_speculative_tag[i] & (~results[1].speculative_tag);
         end
         else begin
-          entries_next[i] = _speculative_tag[i];
+          entries_next[i].speculative_tag          = _speculative_tag[i];
+          entries_next[i].specific_speculative_tag = _specific_speculative_tag[i];
         end
 
         if (is_tag_flooded) begin

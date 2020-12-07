@@ -24,3 +24,18 @@ always_comb
   endcase
 
 endmodule
+
+
+module display(
+  input logic [31:0] stdout,
+  output logic [6:0] HEX0, HEX1, HEX2, HEX3, HEX4, HEX5
+);
+
+hex_display hex2023(.src(stdout[23:20]), .segment(HEX5));
+hex_display hex1619(.src(stdout[19:16]), .segment(HEX4));
+hex_display hex1215(.src(stdout[15:12]), .segment(HEX3));
+hex_display hex0811(.src(stdout[11:8]), .segment(HEX2));
+hex_display hex0407(.src(stdout[7:4]), .segment(HEX1));
+hex_display hex0003(.src(stdout[3:0]), .segment(HEX0));
+
+endmodule

@@ -40,7 +40,7 @@ module mem(
   input logic clk, we,
   input logic [31:0] ra[4], wa, wd,
   input ldst_mode rm[4], wm,
-  output logic [31:0] rd[4]
+  output logic [31:0] rd[4], stdout
 );
 
 logic [31:0] imem[RAM_SIZE-1:0], dmem[RAM_SIZE-1:0];
@@ -59,5 +59,7 @@ generate
 endgenerate
 
 writer write(.clk, .RAM_READ(dmem), .RAM_WRITE(dmem), .enabler(we), .mode(wm), .addr(wa), .data(wd));
+
+assign stdout = dmem['h3f];
 
 endmodule

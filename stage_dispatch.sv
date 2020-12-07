@@ -62,7 +62,7 @@ generate
 
     // fill entry structure
     assign entries_new[j].A_rdy                    = decoded[j].A_rdy;
-    assign entries_new[j].e_state                  = is_valid[j] ? S_NOT_EXECUTED : S_NOT_USED;
+    assign entries_new[j].e_state                  = S_NOT_EXECUTED;
     assign entries_new[j].Unit                     = decoded[j].Unit;
     assign entries_new[j].rwmm                     = decoded[j].rwmm;
     assign entries_new[j].Dest                     = decoded[j].Dest;
@@ -189,9 +189,12 @@ module spectag_generator(
   output logic [5:0] tag[2], tag_specific[2]
 );
 
+logic _is_valid[2], _unused_isvld[6], _second_isvld[6];
 logic [5:0] unused_slot[2], _unused_slot[6], _second_slot[6];
 
-assign _unused_slot[0] = (tag_before & 6'b000001 == '0) ? 6'b000001 : '0;
+assign _unused_isvld[0] = ((tag_before & 6'b000001) == '0);
+assign _second_isvld[0] = 0;
+assign _unused_slot[0] = 6'b000001;
 assign _second_slot[0] = '0;
 
 genvar i;
@@ -199,35 +202,55 @@ generate
   for (i = 1; i < 6; i++) begin: search_unused_slot
     always_comb
       if (tag_before & (6'b000001 << i) == '0) begin
+        _unused_isvld[i] = 1;
+        _second_isvld[i] = _unused_isvld[i-1];
         _unused_slot[i] = (6'b000001 << i);
         _second_slot[i] = _unused_slot[i-1];
       end
       else begin
+        _unused_isvld[i] = _unused_isvld[i-1];
+        _second_isvld[i] = _second_isvld[i-1];
         _unused_slot[i] = _unused_slot[i-1];
         _second_slot[i] = _second_slot[i-1];
       end
   end
 endgenerate
 
+assign _is_valid[0] = _unused_isvld[5];
+assign _is_valid[1] = _second_isvld[5];
 assign unused_slot[0] = _unused_slot[5];
 assign unused_slot[1] = _second_slot[5];
 
 always_comb
   if (is_branch[0]) begin
-    tag[0] = tag_before | unused_slot[0];
-    tag[1] = tag[0]     | (is_branch[1] ? unused_slot[1] : 6'b0);
-    tag_specific[0] = unused_slot[0];
-    tag_specific[1] = (is_branch[1] ? unused_slot[1] : 6'b0);
-    is_valid[0] = (unused_slot[0] != 6'b0);
-    is_valid[1] = is_valid[0] & (is_branch[1] ? (unused_slot[1] != 6'b0) : 1'b1);
+    tag[0]            = tag_before | unused_slot[0];
+    tag_specific[0]   = unused_slot[0];
+    is_valid[0]       = _is_valid[0];
+    if (is_branch[1]) begin
+      tag[1]          = tag[0] | unused_slot[1];
+      tag_specific[1] = unused_slot[1];
+      is_valid[1]     = _is_valid[1];
+    end
+    else begin
+      tag[1]          = tag[0];
+      tag_specific[1] = 6'b0;
+      is_valid[1]     = _is_valid[0];
+    end
   end
   else begin
-    tag[0] = tag_before;
-    tag[1] = tag_before | (is_branch[1] ? unused_slot[0] : 6'b0);
-    tag_specific[0] = 6'b0;
-    tag_specific[1] = (is_branch[1] ? unused_slot[0] : 6'b0);
-    is_valid[0] = 1;
-    is_valid[1] = is_branch[1] ? (unused_slot[0] != 6'b0) : 1'b1;
+    tag[0]            = tag_before;
+    tag_specific[0]   = 6'b0;
+    is_valid[0]       = 1;
+    if (is_branch[1]) begin
+      tag[1]          = tag[0] | unused_slot[0];
+      tag_specific[1] = unused_slot[0];
+      is_valid[1]     = _is_valid[0];
+    end
+    else begin
+      tag[1]          = tag[0];
+      tag_specific[1] = 6'b0;
+      is_valid[1]     = 1;
+    end
   end
 
 endmodule
