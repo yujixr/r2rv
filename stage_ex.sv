@@ -67,7 +67,7 @@ always_comb
     jumped_to = results[0].jumped_to;
   end
   else begin
-    is_branch_established = 1;
+    is_branch_established = 0;
     jumped_to = 32'b0;
   end
 

@@ -7,22 +7,22 @@ module r2rv(
 
 	//////////// CLOCK //////////
 	input 		          		CLOCK_50,
-	input 		          		CLOCK2_50,
-	input 		          		CLOCK3_50,
-	inout 		          		CLOCK4_50,
+	// input 		          		CLOCK2_50,
+	// input 		          		CLOCK3_50,
+	// inout 		          		CLOCK4_50,
 
 	//////////// SDRAM //////////
-	output		    [12:0]		DRAM_ADDR,
-	output		     [1:0]		DRAM_BA,
-	output		          		DRAM_CAS_N,
-	output		          		DRAM_CKE,
-	output		          		DRAM_CLK,
-	output		          		DRAM_CS_N,
-	inout 		    [15:0]		DRAM_DQ,
-	output		          		DRAM_LDQM,
-	output		          		DRAM_RAS_N,
-	output		          		DRAM_UDQM,
-	output		          		DRAM_WE_N,
+	// output		    [12:0]		DRAM_ADDR,
+	// output		     [1:0]		DRAM_BA,
+	// output		          		DRAM_CAS_N,
+	// output		          		DRAM_CKE,
+	// output		          		DRAM_CLK,
+	// output		          		DRAM_CS_N,
+	// inout 		    [15:0]		DRAM_DQ,
+	// output		          		DRAM_LDQM,
+	// output		          		DRAM_RAS_N,
+	// output		          		DRAM_UDQM,
+	// output		          		DRAM_WE_N,
 
 	//////////// SEG7 //////////
 	output		     [6:0]		HEX0,
@@ -33,27 +33,27 @@ module r2rv(
 	output		     [6:0]		HEX5,
 
 	//////////// KEY //////////
-	input 		     [3:0]		KEY,
+	// input 		     [3:0]		KEY,
 	input 		          		RESET_N,
 
 	//////////// LED //////////
 	output		     [9:0]		LEDR,
 
 	//////////// PS2 //////////
-	inout 		          		PS2_CLK,
-	inout 		          		PS2_CLK2,
-	inout 		          		PS2_DAT,
-	inout 		          		PS2_DAT2,
+	// inout 		          		PS2_CLK,
+	// inout 		          		PS2_CLK2,
+	// inout 		          		PS2_DAT,
+	// inout 		          		PS2_DAT2,
 
 	//////////// SW //////////
-	input 		     [9:0]		SW,
+	input 		     [9:0]		SW
 
 	//////////// VGA //////////
-	output		     [3:0]		VGA_B,
-	output		     [3:0]		VGA_G,
-	output		          		VGA_HS,
-	output		     [3:0]		VGA_R,
-	output		          		VGA_VS
+	// output		     [3:0]		VGA_B,
+	// output		     [3:0]		VGA_G,
+	// output		          		VGA_HS,
+	// output		     [3:0]		VGA_R,
+	// output		          		VGA_VS
 );
 
 
@@ -62,8 +62,8 @@ module r2rv(
 //  REG/WIRE declarations
 //=======================================================
 
-  logic we, clk;
-  logic [31:0] ra[4], wa, rd[4], wd;
+  logic we, clk, reset;
+  logic [31:0] ra[4], wa, rd[4], wd, outputs[10];
   ldst_mode rm[4], wm;
 
 
@@ -73,11 +73,12 @@ module r2rv(
 //=======================================================
 
   assign LEDR = SW;
-  assign clk = KEY[0];
+  assign reset = !RESET_N;
 
-  riscv riscv(.clk, .reset(!RESET_N), .we, .ra, .wa, .rm, .wm, .rd, .wd);
-  mem mem(.clk, .we, .ra, .wa, .rm, .wm, .rd, .wd,
-    .HEX0, .HEX1, .HEX2, .HEX3, .HEX4, .HEX5);
+  clk_divider divide(.clk(CLOCK_50), .divided_clk(clk));
+  riscv riscv(.clk, .reset, .we, .ra, .wa, .rm, .wm, .rd, .wd, .outputs);
+  mem mem(.clk, .we, .ra, .wa, .rm, .wm, .rd, .wd);
+  display display(.clk, .outputs, .SW, .HEX0, .HEX1, .HEX2, .HEX3, .HEX4, .HEX5);
 
 
 

@@ -30,3 +30,7 @@
 !*.sdc
 # tcl files:
 !*.tcl
+
+# data file
+!imem.dat
+!dmem.dat

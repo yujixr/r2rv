@@ -13,7 +13,7 @@ module writer(
 genvar i;
 generate
   for (i = 0; i < RAM_SIZE; i++) begin: Update
-    always_ff @(negedge clk)
+    always_ff @(posedge clk)
       if ((addr[RAM_SIZE_LOG+1:2]==i) & enabler)
         RAM_WRITE[i] <= data;
       else
@@ -38,33 +38,26 @@ endmodule
 
 module mem(
   input logic clk, we,
-  input logic [31:0] ra[4], wa,
+  input logic [31:0] ra[4], wa, wd,
   input ldst_mode rm[4], wm,
-  input logic [31:0] wd,
-  output logic [31:0] rd[4],
-  output logic [6:0] HEX0, HEX1, HEX2, HEX3, HEX4, HEX5
+  output logic [31:0] rd[4]
 );
 
-logic [31:0] imem[RAM_SIZE-1:0], dmem[RAM_SIZE-1:0], stdout;
+logic [31:0] imem[RAM_SIZE-1:0], dmem[RAM_SIZE-1:0];
 
 initial begin
   $readmemh("imem.dat", imem);
   $readmemh("dmem.dat", dmem);
 end
 
-reader read1(imem, rm[0], ra[0], rd[0]);
-reader read2(imem, rm[1], ra[1], rd[1]);
-reader read3(dmem, rm[2], ra[2], rd[2]);
-reader read4(dmem, rm[3], ra[3], rd[3]);
-writer write(clk, dmem, dmem, we, wm, wa, wd);
+genvar i;
+generate
+  for (i = 0; i < 2; i++) begin: readers
+    reader iread(.RAM(imem), .mode(rm[i]), .addr(ra[i]), .data(rd[i]));
+    reader dread(.RAM(dmem), .mode(rm[2+i]), .addr(ra[2+i]), .data(rd[2+i]));
+  end
+endgenerate
 
-assign stdout = dmem['h3f];
-
-hex_display hex2023(stdout[23:20], HEX5);
-hex_display hex1619(stdout[19:16], HEX4);
-hex_display hex1215(stdout[15:12], HEX3);
-hex_display hex0811(stdout[11:8], HEX2);
-hex_display hex0407(stdout[7:4], HEX1);
-hex_display hex0003(stdout[3:0], HEX0);
+writer write(.clk, .RAM_READ(dmem), .RAM_WRITE(dmem), .enabler(we), .mode(wm), .addr(wa), .data(wd));
 
 endmodule

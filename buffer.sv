@@ -71,7 +71,7 @@ logic [5:0] _speculative_tag[BUF_SIZE];
 genvar i;
 generate
   for (i = 0; i < BUF_SIZE; i++) begin: Reg
-    flopr #($bits(entry)) ff(clk, reset, entries_next[i], entries[i]);
+    flopr #($bits(entry)) ff(.clk, .reset, .d(entries_next[i]), .q(entries[i]));
     always_comb
       // from COMMIT stage
       if ((entries[i].tag == commited_tags[0] && is_really_commited[0])

@@ -17,7 +17,7 @@ logic [BUF_SIZE_LOG:0] lastused_tag[4];
 find_allocatable_entries find(.entries(entries_all), .is_valid(is_buffer_ok), .indexes);
 
 // generate tag, speculative tag
-logic unsigned [BUF_SIZE_LOG:0] tag_before, tag[2];
+logic [BUF_SIZE_LOG:0] tag_before, tag[2];
 last_finder find_last_entry(.entries(entries_all), .is_valid(is_not_empty),
     .tag(tag_before), .spec_tag(spec_tag_before), .number_of_store_ops);
 always_comb
@@ -37,15 +37,15 @@ always_comb
     is_tag_flooded = 1;
   end
   else begin
-    tag[0] = tag_before - (BUF_SIZE_LOG+1)'(1);
-    tag[1] = tag_before - (BUF_SIZE_LOG+1)'(2);
+    tag[0] = tag_before - 5'b00001;
+    tag[1] = tag_before - 5'b00010;
     is_tag_flooded = 0;
   end
 
 genvar i;
 generate
   for (i = 0; i < 2; i++) begin: assign_is_branch
-    assign is_branch[i] = (decoded[i].Unit==BRANCH) & decoded[i].is_valid & is_buffer_ok[i];
+    assign is_branch[i] = (decoded[i].Unit==BRANCH);
   end
 endgenerate
 spectag_generator generate_spectag(.is_branch, .tag_before(spec_tag_before), .is_valid(is_spectag_ok), .tag(spectag), .tag_specific(spectag_specific));
@@ -219,7 +219,7 @@ always_comb
     tag_specific[0] = unused_slot[0];
     tag_specific[1] = (is_branch[1] ? unused_slot[1] : 6'b0);
     is_valid[0] = (unused_slot[0] != 6'b0);
-    is_valid[1] = is_branch[1] ? (unused_slot[1] != 6'b0) : 1'b1;
+    is_valid[1] = is_valid[0] & (is_branch[1] ? (unused_slot[1] != 6'b0) : 1'b1);
   end
   else begin
     tag[0] = tag_before;

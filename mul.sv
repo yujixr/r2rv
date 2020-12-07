@@ -29,7 +29,6 @@ always_comb
   endcase
 
 assign yx = bx * ax;
-
-mux2 #(32) select_y(yx[63:32], yx[31:0], Op[8:7]==MUL, y);
+assign y = (Op[8:7]==MUL) ? yx[31:0] : yx[63:32];
 
 endmodule
