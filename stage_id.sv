@@ -1,17 +1,17 @@
 typedef struct packed {
   logic is_valid;
-  unit Unit;
+  unit_t Unit;
   logic A_rdy;
-  ldst_mode rwmm;
+  ldst_mode_t rwmm;
   logic [4:0] Qj, Qk, Dest;
   logic [9:0] Op;
   logic [31:0] Vj, Vk, A, pc;
-} decode_result;
+} decode_result_t;
 
 module id(
   input logic is_valid[2],
   input logic [31:0] instr[2], pc[2],
-  output decode_result decoded[2]
+  output decode_result_t decoded[2]
 );
 
 genvar i;

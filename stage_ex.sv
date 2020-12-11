@@ -1,20 +1,20 @@
 typedef struct packed {
   logic is_valid;
-  ex_mode mode;
+  ex_mode_t mode;
   logic is_branch_established;
   logic [5:0] speculative_tag;
   logic [31:0] result, jumped_to;
-  logic [BUF_SIZE_LOG:0] tag;
-} ex_result;
+  tag_t tag;
+} ex_result_t;
 
 module ex(
   input is_tag_flooded,
-  input ex_content ex_contents[2],
+  input ex_content_t ex_contents[2],
   input logic [31:0] load_data[2],
-  output ldst_mode load_mode[2],
+  output ldst_mode_t load_mode[2],
   output logic [31:0] load_addr[2], jumped_to,
   output logic is_branch_established,
-  output ex_result results[2]
+  output ex_result_t results[2]
 );
 
 logic _is_branch_established[2];
@@ -75,7 +75,7 @@ endmodule
 
 
 module result_switcher(
-  input unit Unit,
+  input unit_t Unit,
   input logic [31:0] alu_result, mul_result, div_result, pc_plus4, rdm,
   output logic [31:0] result
 );

@@ -1,16 +1,16 @@
 module commit(
   input logic is_tag_flooded,
-  input entry entries[BUF_SIZE],
+  input entry_t entries[BUF_SIZE],
   output logic is_valid[2], is_store[2],
-  output logic [BUF_SIZE_LOG:0] tags[2],
+  output tag_t tags[2],
   output logic store_enable,
-  output ldst_mode store_mode,
+  output ldst_mode_t store_mode,
   output logic [4:0] reg_addr[2],
   output logic [31:0] store_addr, store_data, reg_data[2]
 );
 
 logic _is_valid[2];
-entry entries_target[2];
+entry_t entries_target[2];
 
 find_committable_entries find(.entries_all(entries), .is_valid(_is_valid), .entries_target);
 
@@ -75,13 +75,13 @@ endmodule
 
 // find executed entries with maximum tag.
 module find_committable_entries(
-  input entry entries_all[BUF_SIZE],
+  input entry_t entries_all[BUF_SIZE],
   output logic is_valid[2],
-  output entry entries_target[2]
+  output entry_t entries_target[2]
 );
 
 logic _max_is_valid[BUF_SIZE], _2nd_is_valid[BUF_SIZE];
-entry _maximum[BUF_SIZE], _2nd_max[BUF_SIZE];
+entry_t _maximum[BUF_SIZE], _2nd_max[BUF_SIZE];
 
 assign _max_is_valid[0] = (entries_all[0].e_state == S_EXECUTED);
 assign _2nd_is_valid[0] = 0;

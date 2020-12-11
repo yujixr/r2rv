@@ -7,11 +7,11 @@ module riscv(
   input logic [31:0] rd[4],
   output logic we,
   output logic [31:0] ra[4], wa, wd,
-  output ldst_mode rm[4], wm
+  output ldst_mode_t rm[4], wm
 );
 
 // Data Storage
-entry entries[BUF_SIZE];
+entry_t entries[BUF_SIZE];
 
 regfile rf(
   .clk, .reset, .ra(reg_read_addr),
@@ -20,8 +20,9 @@ regfile rf(
 
 buffer bf(
   .clk, .reset, .is_valid_allocation, .is_tag_flooded,
-  .allocation_indexes, .entries_new(DI_entries_new), .ex_contents(WU_ex_contents), .results(BF_results),
-  .is_really_commited, .is_commited_store(is_store), .commited_tags(CM_tags), .entries
+  .allocation_indexes(allocation_indexes), .entries_new(entries_new),
+  .ex_contents(ex_contents), .results(BF_results), .is_really_commited,
+  .is_commited_store(is_store), .commited_tags(CM_tags), .entries
 );
 
 // Instruction Fetch
@@ -47,42 +48,42 @@ twinflop #(32) IFID_instr(.clk, .reset(flash), .can_proceed, .in(instr), .out(ID
 twinflop #(32) IFID_pc(.clk, .reset(flash), .can_proceed, .in(pc), .out(ID_pc));
 
 // Instruction Decode
-decode_result decoded[2];
+decode_result_t decoded[2];
 
 id STAGE_ID(.is_valid(ID_is_valid), .instr(ID_instr), .pc(ID_pc), .decoded);
 
 // ID -> DI
-decode_result DI_decoded[2];
-twinflop #($bits(decode_result)) IDDI_decoded(.clk, .reset(flash), .can_proceed, .in(decoded), .out(DI_decoded));
+decode_result_t DI_decoded[2];
+twinflop #($bits(decode_result_t)) IDDI_decoded(.clk, .reset(flash), .can_proceed, .in(decoded), .out(DI_decoded));
 
 // Dispatch
 logic is_valid_allocation[2], can_proceed[2], is_tag_flooded;
 logic [4:0] reg_read_addr[4];
 logic [31:0] reg_read_data[4];
-logic [BUF_SIZE_LOG-1:0] allocation_indexes[2];
-entry DI_entries_new[2];
+index_t allocation_indexes[2];
+entry_t entries_new[2];
 
 dispatch STAGE_DI(
   .entries_all(entries), .reg_data(reg_read_data), .decoded(DI_decoded),
   .is_valid(is_valid_allocation), .is_allocatable(can_proceed), .is_tag_flooded, .reg_addr(reg_read_addr), 
-  .entries_new(DI_entries_new), .indexes(allocation_indexes)
+  .entries_new, .indexes(allocation_indexes)
 );
 
 // Wakeup
-ex_content WU_ex_contents[2];
+ex_content_t ex_contents[2];
 
-wakeup STAGE_WU(.is_tag_flooded, .entries, .ex_contents(WU_ex_contents));
+wakeup STAGE_WU(.is_tag_flooded, .entries, .ex_contents);
 
 // WU -> EX
-ex_content EX_ex_contents[2];
-flopr #($bits(ex_content)) WUEX_ex_contents_1(.clk, .reset(flash), .d(WU_ex_contents[0]), .q(EX_ex_contents[0]));
-flopr #($bits(ex_content)) WUEX_ex_contents_2(.clk, .reset(flash), .d(WU_ex_contents[1]), .q(EX_ex_contents[1]));
+ex_content_t EX_ex_contents[2];
+flopr #($bits(ex_content_t)) WUEX_ex_contents_1(.clk, .reset(flash), .d(ex_contents[0]), .q(EX_ex_contents[0]));
+flopr #($bits(ex_content_t)) WUEX_ex_contents_2(.clk, .reset(flash), .d(ex_contents[1]), .q(EX_ex_contents[1]));
 
 // Execute
 logic is_branch_established, flash;
 logic [31:0] load_addr[2], load_data[2], jumped_to;
-ldst_mode load_mode[2];
-ex_result results[2];
+ldst_mode_t load_mode[2];
+ex_result_t results[2];
 
 ex STAGE_EX(
   .is_tag_flooded, .ex_contents(EX_ex_contents), .load_data,
@@ -98,16 +99,16 @@ assign load_data[1] = rd[3];
 assign flash = reset | is_branch_established;
 
 // EX -> BF
-ex_result BF_results[2];
-flopr #($bits(ex_result)) EXBF_results_1(.clk, .reset, .d(results[0]), .q(BF_results[0]));
-flopr #($bits(ex_result)) EXBF_results_2(.clk, .reset, .d(results[1]), .q(BF_results[1]));
+ex_result_t BF_results[2];
+flopr #($bits(ex_result_t)) EXBF_results_1(.clk, .reset, .d(results[0]), .q(BF_results[0]));
+flopr #($bits(ex_result_t)) EXBF_results_2(.clk, .reset, .d(results[1]), .q(BF_results[1]));
 
 // Commit
 logic is_really_commited[2], is_store[2], store_enable;
 logic [4:0] reg_write_addr[2];
 logic [31:0] store_addr, store_data, reg_write_data[2];
-logic [BUF_SIZE_LOG:0] CM_tags[2];
-ldst_mode store_mode;
+tag_t CM_tags[2];
+ldst_mode_t store_mode;
 
 commit STAGE_CM(
   .is_tag_flooded, .entries, .is_valid(is_really_commited), .is_store, .tags(CM_tags),

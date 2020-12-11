@@ -6,7 +6,7 @@ module writer(
   input logic [31:0] RAM_READ[RAM_SIZE-1:0],
   output logic [31:0] RAM_WRITE[RAM_SIZE-1:0],
   input logic enabler,
-  input ldst_mode mode,
+  input ldst_mode_t mode,
   input logic [31:0] addr, data
 );
 
@@ -26,7 +26,7 @@ endmodule
 
 module reader(
   input logic [31:0] RAM[RAM_SIZE-1:0],
-  input ldst_mode mode,
+  input ldst_mode_t mode,
   input logic [31:0] addr,
   output logic [31:0] data
 );
@@ -39,7 +39,7 @@ endmodule
 module mem(
   input logic clk, we,
   input logic [31:0] ra[4], wa, wd,
-  input ldst_mode rm[4], wm,
+  input ldst_mode_t rm[4], wm,
   output logic [31:0] rd[4], stdout
 );
 

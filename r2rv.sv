@@ -64,7 +64,7 @@ module r2rv(
 
   logic we, clk, reset;
   logic [31:0] ra[4], wa, rd[4], wd, stdout;
-  ldst_mode rm[4], wm;
+  ldst_mode_t rm[4], wm;
 
 
 
@@ -73,10 +73,10 @@ module r2rv(
 //=======================================================
 
   assign LEDR = SW;
-  // assign clk = CLOCK_50;
+  assign clk = CLOCK_50;
   assign reset = !RESET_N;
 
-  clk_divider divide(.clk(CLOCK_50), .divided_clk(clk));
+  // clk_divider divide(.clk(CLOCK_50), .divided_clk(clk));
   riscv riscv(.clk, .reset, .we, .ra, .wa, .rm, .wm, .rd, .wd);
   mem mem(.clk, .we, .ra, .wa, .rm, .wm, .rd, .wd, .stdout);
   display display(.stdout, .HEX0, .HEX1, .HEX2, .HEX3, .HEX4, .HEX5);

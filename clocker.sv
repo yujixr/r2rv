@@ -3,21 +3,16 @@ module clk_divider(
   output logic divided_clk
 );
 
-logic cntend;
 logic [25:0] cnt;
 
-assign cntend = (cnt==26'd24_999_999);
-
 always_ff @(posedge clk)
-  if(cntend)
+  if (cnt == 26'd24_999_999) begin
     cnt <= 26'd0;
-  else
-    cnt <= cnt + 26'd1;
-
-always_ff @(posedge clk)
-  if(cntend)
     divided_clk <= ~(divided_clk);
-  else
+  end
+  else begin
+    cnt <= cnt + 26'd1;
     divided_clk <= divided_clk;
+  end
 
 endmodule

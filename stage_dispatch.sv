@@ -1,23 +1,23 @@
 module dispatch(
-  input entry entries_all[BUF_SIZE],
+  input entry_t entries_all[BUF_SIZE],
   input logic [31:0] reg_data[4],
-  input decode_result decoded[2],
+  input decode_result_t decoded[2],
   output logic is_valid[2], is_allocatable[2], is_tag_flooded,
   output logic [4:0] reg_addr[4],
-  output logic [BUF_SIZE_LOG-1:0] indexes[2],
-  output entry entries_new[2]
+  output index_t indexes[2],
+  output entry_t entries_new[2]
 );
 
 logic is_buffer_ok[2], is_spectag_ok[2], is_branch[2], is_used_reg[4], is_not_empty;
 logic [4:0] reg_target[4];
 logic [5:0] spectag[2], spectag_specific[2], spec_tag_before;
-logic [BUF_SIZE_LOG-1:0] number_of_store_ops;
-logic [BUF_SIZE_LOG:0] lastused_tag[4];
+index_t number_of_store_ops;
+tag_t lastused_tag[4];
 
 find_allocatable_entries find(.entries(entries_all), .is_valid(is_buffer_ok), .indexes);
 
 // generate tag, speculative tag
-logic [BUF_SIZE_LOG:0] tag_before, tag[2];
+tag_t tag_before, tag[2];
 last_finder find_last_entry(.entries(entries_all), .is_valid(is_not_empty),
     .tag(tag_before), .spec_tag(spec_tag_before), .number_of_store_ops);
 always_comb
@@ -124,17 +124,17 @@ endmodule
 
 
 module last_finder(
-  input entry entries[BUF_SIZE],
+  input entry_t entries[BUF_SIZE],
   output logic is_valid,
-  output logic [BUF_SIZE_LOG:0] tag,
+  output tag_t tag,
   output logic [5:0] spec_tag,
-  output logic [BUF_SIZE_LOG-1:0] number_of_store_ops
+  output index_t number_of_store_ops
 );
 
 logic _is_valid[BUF_SIZE];
-logic [BUF_SIZE_LOG:0] mintag[BUF_SIZE];
+tag_t mintag[BUF_SIZE];
 logic [5:0] _spec_tag[BUF_SIZE];
-logic [BUF_SIZE_LOG-1:0] _number_of_store_ops[BUF_SIZE];
+index_t _number_of_store_ops[BUF_SIZE];
 
 assign _is_valid[0] = entries[0].e_state != S_NOT_USED;
 assign mintag[0]    = entries[0].tag;
@@ -258,13 +258,13 @@ endmodule
 
 // find not-used entries.
 module find_allocatable_entries(
-  input entry entries[BUF_SIZE],
+  input entry_t entries[BUF_SIZE],
   output logic is_valid[2],
-  output logic [BUF_SIZE_LOG-1:0] indexes[2]
+  output index_t indexes[2]
 );
 
 logic _1st_isvld[BUF_SIZE], _2nd_isvld[BUF_SIZE];
-logic [BUF_SIZE_LOG-1:0] _1st_index[BUF_SIZE], _2nd_index[BUF_SIZE];
+index_t _1st_index[BUF_SIZE], _2nd_index[BUF_SIZE];
 
 assign _1st_isvld[0] = (entries[0].e_state == S_NOT_USED);
 assign _2nd_isvld[0] = 0;
@@ -301,13 +301,13 @@ endmodule
 
 // check registers 
 module check_reg_used(
-  input entry entries[BUF_SIZE],
+  input entry_t entries[BUF_SIZE],
   input logic [4:0] reg_target[4],
   output logic is_used[4],
-  output logic [BUF_SIZE_LOG:0] tags[4]
+  output tag_t tags[4]
 );
 
-logic [BUF_SIZE_LOG:0] _tags[BUF_SIZE*4];
+tag_t _tags[BUF_SIZE*4];
 logic _is_used[BUF_SIZE*4];
 
 genvar i, j;

@@ -1,13 +1,21 @@
 parameter BUF_SIZE_LOG = 4;
 parameter BUF_SIZE = 2**BUF_SIZE_LOG;
 
+typedef logic [BUF_SIZE_LOG-1:0] index_t;
+typedef logic [BUF_SIZE_LOG:0] tag_t;
+
+typedef enum logic {
+  false = 1'b0,
+  true  = 1'b1
+} bool;
+
 typedef enum logic [2:0] {
   S_NOT_USED = 3'b0,
   S_NOT_EXECUTED,
   S_EXECUTING,
   S_ADDR_GENERATED,
   S_EXECUTED
-} state;
+} state_t;
 
 typedef enum logic [2:0] {
   ALU,
@@ -16,7 +24,7 @@ typedef enum logic [2:0] {
   DIV,
   LOAD,
   STORE
-} unit;
+} unit_t;
 
 typedef enum logic [2:0] {
   BYTE        = 3'b000,
@@ -24,54 +32,54 @@ typedef enum logic [2:0] {
   WORD        = 3'b010,
   U_BYTE      = 3'b100,
   U_HALF_WORD = 3'b101
-} ldst_mode;
+} ldst_mode_t;
 
 typedef enum logic [0:0] {
   EX_NORMAL,
   EX_GEN_ADDR
-} ex_mode;
+} ex_mode_t;
 
 typedef struct packed {
   logic J_rdy, K_rdy, A_rdy;
-  state e_state;
-  unit Unit;
-  ldst_mode rwmm;
+  state_t e_state;
+  unit_t Unit;
+  ldst_mode_t rwmm;
   logic [4:0] Dest;
   logic [5:0] speculative_tag, specific_speculative_tag;
   logic [9:0] Op;
   logic [31:0] Vj, Vk, A, pc, result;
-  logic [BUF_SIZE_LOG-1:0] number_of_early_store_ops;
-  logic [BUF_SIZE_LOG:0] Qj, Qk, tag;
-} entry;
+  index_t number_of_early_store_ops;
+  tag_t Qj, Qk, tag;
+} entry_t;
 
 module buffer(
   input logic clk, reset,
 
   // from DISPATCH stage
   input logic is_valid_allocation[2], is_tag_flooded,
-  input logic [BUF_SIZE_LOG-1:0] allocation_indexes[2],
-  input entry entries_new[2],
+  input index_t allocation_indexes[2],
+  input entry_t entries_new[2],
 
   // from WAKEUP stage
-  input ex_content ex_contents[2],
+  input ex_content_t ex_contents[2],
 
   // from EX stage
-  input ex_result results[2],
+  input ex_result_t results[2],
 
   // from COMMIT stage
   input logic is_really_commited[2], is_commited_store[2],
-  input logic [BUF_SIZE_LOG:0] commited_tags[2],
+  input tag_t commited_tags[2],
 
-  output entry entries[BUF_SIZE]
+  output entry_t entries[BUF_SIZE]
 );
 
-entry entries_next[BUF_SIZE];
+entry_t entries_next[BUF_SIZE];
 logic [5:0] _speculative_tag[BUF_SIZE], _specific_speculative_tag[BUF_SIZE];
 
 genvar i;
 generate
   for (i = 0; i < BUF_SIZE; i++) begin: Reg
-    flopr #($bits(entry)) ff(.clk, .reset, .d(entries_next[i]), .q(entries[i]));
+    flopr #($bits(entry_t)) ff(.clk, .reset, .d(entries_next[i]), .q(entries[i]));
     always_comb
       // from DISPATCH stage
       if (entries[i].e_state == S_NOT_USED) begin

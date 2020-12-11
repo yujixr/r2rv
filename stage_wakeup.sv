@@ -1,22 +1,22 @@
 typedef struct packed {
   logic is_valid;
-  unit Unit;
-  ex_mode mode;
-  ldst_mode rm;
+  unit_t Unit;
+  ex_mode_t mode;
+  ldst_mode_t rm;
   logic [5:0] speculative_tag;
   logic [9:0] Op;
   logic [31:0] Vj, Vk, A, pc;
-  logic [BUF_SIZE_LOG:0] tag;
-} ex_content;
+  tag_t tag;
+} ex_content_t;
 
 module wakeup(
   input logic is_tag_flooded,
-  input entry entries[BUF_SIZE-1:0],
-  output ex_content ex_contents[2]
+  input entry_t entries[BUF_SIZE-1:0],
+  output ex_content_t ex_contents[2]
 );
 
 logic is_valid[2];
-entry entries_target[2];
+entry_t entries_target[2];
 
 find_executable_entries find(.entries_all(entries), .is_valid, .entries_target);
 
@@ -59,13 +59,13 @@ endmodule
 
 // find not-executed entries with maximum tag.
 module find_executable_entries(
-  input entry entries_all[BUF_SIZE],
+  input entry_t entries_all[BUF_SIZE],
   output logic is_valid[2],
-  output entry entries_target[2]
+  output entry_t entries_target[2]
 );
 
 logic _max_is_valid[BUF_SIZE], _2nd_is_valid[BUF_SIZE];
-entry _maximum[BUF_SIZE], _2nd_max[BUF_SIZE];
+entry_t _maximum[BUF_SIZE], _2nd_max[BUF_SIZE];
 
 always_comb
   if (entries_all[0].J_rdy && entries_all[0].K_rdy
