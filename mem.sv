@@ -1,4 +1,4 @@
-parameter RAM_SIZE_LOG = 8;
+parameter RAM_SIZE_LOG = 6;
 parameter RAM_SIZE = 2**RAM_SIZE_LOG;
 
 module writer(
