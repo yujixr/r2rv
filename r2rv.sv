@@ -62,8 +62,9 @@ module r2rv(
 //  REG/WIRE declarations
 //=======================================================
 
-  logic we, clk, reset;
+  logic clk, reset;
   logic [31:0] ra[4], wa, rd[4], wd, stdout;
+  bool we;
   ldst_mode_t rm[4], wm;
 
 

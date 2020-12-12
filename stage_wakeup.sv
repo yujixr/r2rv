@@ -1,5 +1,5 @@
 typedef struct packed {
-  logic is_valid;
+  bool is_valid;
   unit_t Unit;
   ex_mode_t mode;
   ldst_mode_t rm;
@@ -15,7 +15,7 @@ module wakeup(
   output ex_content_t ex_contents[2]
 );
 
-logic is_valid[2];
+bool is_valid[2];
 entry_t entries_target[2];
 
 find_executable_entries find(.entries_all(entries), .is_valid, .entries_target);
@@ -60,59 +60,63 @@ endmodule
 // find not-executed entries with maximum tag.
 module find_executable_entries(
   input entry_t entries_all[BUF_SIZE],
-  output logic is_valid[2],
+  output bool is_valid[2],
   output entry_t entries_target[2]
 );
 
-logic _max_is_valid[BUF_SIZE], _2nd_is_valid[BUF_SIZE];
-entry_t _maximum[BUF_SIZE], _2nd_max[BUF_SIZE];
+bool is_executable[BUF_SIZE], is_valid_minval[BUF_SIZE], is_valid_second[BUF_SIZE];
+entry_t minval_entry[BUF_SIZE], second_entry[BUF_SIZE];
 
-always_comb
-  if (entries_all[0].J_rdy && entries_all[0].K_rdy
-    && (entries_all[0].e_state == S_NOT_EXECUTED || entries_all[0].e_state == S_ADDR_GENERATED)
-    && (entries_all[0].Unit != LOAD || entries_all[0].number_of_early_store_ops == 0)) begin
-    _max_is_valid[0] = 1;
-    _maximum[0] = entries_all[0];
-  end
-  else begin
-    _max_is_valid[0] = 0;
-    _maximum[0] = 0;
-  end
+executable_validation validate_latest(.entry(entries_all[BUF_SIZE-1]),
+  .is_executable(is_executable[BUF_SIZE-1]));
 
-assign _2nd_is_valid[0] = 0;
-assign _2nd_max[0] = 0;
+assign is_valid_minval[BUF_SIZE-1] = is_executable[BUF_SIZE-1];
+assign is_valid_second[BUF_SIZE-1] = false;
+assign minval_entry[BUF_SIZE-1] = entries_all[BUF_SIZE-1];
+assign second_entry[BUF_SIZE-1] = 'b0;
 
 genvar i;
 generate
-  for (i = 1; i < BUF_SIZE; i++) begin: Search
+  // Going smaller index, validating older entry.
+  for (i = BUF_SIZE-2; i >= 0; i--) begin: Search
+    executable_validation validate(.entry(entries_all[i]), .is_executable(is_executable[i]));
     always_comb
-      if ((!_2nd_is_valid[i-1] || _2nd_max[i-1].tag < entries_all[i].tag)
-        && entries_all[i].J_rdy && entries_all[i].K_rdy
-        && (entries_all[i].e_state == S_NOT_EXECUTED || entries_all[i].e_state == S_ADDR_GENERATED)
-        && (entries_all[i].Unit != LOAD || entries_all[i].number_of_early_store_ops == 0)) begin
-        _max_is_valid[i] = 1;
-        _2nd_is_valid[i] = _max_is_valid[i-1];
-        if (entries_all[i].tag > _maximum[i-1].tag) begin
-          _maximum[i] = entries_all[i];
-          _2nd_max[i] = _maximum[i-1];
-        end
-        else begin
-          _maximum[i] = _maximum[i-1];
-          _2nd_max[i] = entries_all[i];
-        end
+      if (is_executable[i] == true) begin
+        is_valid_minval[i] = true;
+        is_valid_second[i] = is_valid_minval[i+1];
+        minval_entry[i] = entries_all[i];
+        second_entry[i] = minval_entry[i+1];
       end
       else begin
-        _max_is_valid[i] = _max_is_valid[i-1];
-        _2nd_is_valid[i] = _2nd_is_valid[i-1];
-        _maximum[i] = _maximum[i-1];
-        _2nd_max[i] = _2nd_max[i-1];
+        is_valid_minval[i] = is_valid_minval[i+1];
+        is_valid_second[i] = is_valid_second[i+1];
+        minval_entry[i] = minval_entry[i+1];
+        second_entry[i] = second_entry[i+1];
         end
   end
 endgenerate
 
-assign is_valid[0] = _max_is_valid[BUF_SIZE-1];
-assign is_valid[1] = _2nd_is_valid[BUF_SIZE-1];
-assign entries_target[0] = _maximum[BUF_SIZE-1];
-assign entries_target[1] = _2nd_max[BUF_SIZE-1];
+assign is_valid[0] = is_valid_minval[0];
+assign is_valid[1] = is_valid_second[0];
+assign entries_target[0] = minval_entry[0];
+assign entries_target[1] = second_entry[0];
+
+endmodule
+
+
+module executable_validation(
+  input entry_t entry,
+  output bool is_executable
+);
+
+always_comb
+  if (entry.J_rdy && entry.K_rdy
+    && (entry.e_state == S_NOT_EXECUTED || entry.e_state == S_ADDR_GENERATED)
+    && (entry.Unit != LOAD || entry.number_of_early_store_ops == 0)) begin
+    is_executable = true;
+  end
+  else begin
+    is_executable = false;
+  end
 
 endmodule

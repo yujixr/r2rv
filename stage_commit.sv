@@ -1,122 +1,74 @@
 module commit(
   input logic is_tag_flooded,
   input entry_t entries[BUF_SIZE],
-  output logic is_valid[2], is_store[2],
+  output bool is_valid[2], is_store[2], store_enable,
   output tag_t tags[2],
-  output logic store_enable,
   output ldst_mode_t store_mode,
   output logic [4:0] reg_addr[2],
   output logic [31:0] store_addr, store_data, reg_data[2]
 );
 
-logic _is_valid[2];
-entry_t entries_target[2];
-
-find_committable_entries find(.entries_all(entries), .is_valid(_is_valid), .entries_target);
-
-assign is_valid[0] = _is_valid[0];
-assign is_store[0] = entries_target[0].Unit == STORE;
-assign is_store[1] = entries_target[1] == STORE;
+bool is_2nd_valid, is_2nd_store;
 
 always_comb
   if (is_tag_flooded) begin
-    tags[0] = { 1'b1, entries_target[0].tag[BUF_SIZE_LOG-1:0] };
-    tags[1] = { 1'b1, entries_target[1].tag[BUF_SIZE_LOG-1:0] };
+    tags[0] = { 1'b1, entries[0].tag[BUF_SIZE_LOG-1:0] };
+    tags[1] = { 1'b1, entries[1].tag[BUF_SIZE_LOG-1:0] };
   end
   else begin
-    tags[0] = entries_target[0].tag;
-    tags[1] = entries_target[1].tag;
+    tags[0] = entries[0].tag;
+    tags[1] = entries[1].tag;
   end
 
 always_comb
-  if (is_valid[0]) begin
-    reg_addr[0] = entries_target[0].Dest;
-    reg_data[0] = entries_target[0].result;
+  if (entries[0].e_state == S_EXECUTED) begin
+    is_valid[0] = true;
+    reg_addr[0] = entries[0].Dest;
+    reg_data[0] = entries[0].result;
+    is_store[0] = bool'(entries[0].Unit == STORE);
   end
   else begin
+    is_valid[0] = false;
     reg_addr[0] = '0;
     reg_data[0] = '0;
+    is_store[0] = false;
   end
 
+assign is_2nd_valid = bool'(entries[1].e_state == S_EXECUTED);
+assign is_2nd_store = bool'(entries[1].Unit == STORE);
+
 always_comb
-  if (is_store[0] && is_store[1] && _is_valid[0] && _is_valid[1]) begin
-    is_valid[1] = '0;
-    reg_addr[1] = entries_target[1].Dest;
-    reg_data[1] = entries_target[1].result;
+  if (is_2nd_valid && (!is_store[0] || !is_2nd_store)) begin
+    is_valid[1] = true;
+    reg_addr[1] = entries[1].Dest;
+    reg_data[1] = entries[1].result;
+    is_store[1] = is_2nd_store;
   end
   else begin
-    is_valid[1] = _is_valid[1];
+    is_valid[1] = false;
     reg_addr[1] = '0;
     reg_data[1] = '0;
+    is_store[1] = false;
   end
 
 always_comb
-  if (is_store[0] && _is_valid[0]) begin
-    store_enable = 1;
-    store_mode = entries_target[0].rwmm;
-    store_addr = entries_target[0].A;
-    store_data = entries_target[0].Vk;
+  if (is_store[0]) begin
+    store_enable = true;
+    store_mode = entries[0].rwmm;
+    store_addr = entries[0].A;
+    store_data = entries[0].Vk;
   end
-  else if (is_store[1] && _is_valid[1]) begin
-    store_enable = 1;
-    store_mode = entries_target[1].rwmm;
-    store_addr = entries_target[1].A;
-    store_data = entries_target[1].Vk;
+  else if (is_store[1]) begin
+    store_enable = true;
+    store_mode = entries[1].rwmm;
+    store_addr = entries[1].A;
+    store_data = entries[1].Vk;
   end
   else begin
-    store_enable = 0;
+    store_enable = false;
     store_mode = WORD;
     store_addr = 32'b0;
     store_data = 32'b0;
   end
-
-endmodule
-
-
-// find executed entries with maximum tag.
-module find_committable_entries(
-  input entry_t entries_all[BUF_SIZE],
-  output logic is_valid[2],
-  output entry_t entries_target[2]
-);
-
-logic _max_is_valid[BUF_SIZE], _2nd_is_valid[BUF_SIZE];
-entry_t _maximum[BUF_SIZE], _2nd_max[BUF_SIZE];
-
-assign _max_is_valid[0] = (entries_all[0].e_state == S_EXECUTED);
-assign _2nd_is_valid[0] = 0;
-assign _maximum[0] = entries_all[0];
-assign _2nd_max[0] = 0;
-
-genvar i;
-generate
-  for (i = 1; i < BUF_SIZE; i++) begin: Search
-    always_comb
-      if (entries_all[i].e_state == S_EXECUTED && (entries_all[i].tag > _2nd_max[i-1].tag || !_2nd_is_valid[i-1])) begin
-        _max_is_valid[i] = 1;
-        _2nd_is_valid[i] = _max_is_valid[i-1];
-
-        if (!_max_is_valid[i-1] || entries_all[i].tag > _maximum[i-1].tag) begin
-          _maximum[i] = entries_all[i];
-          _2nd_max[i] = _maximum[i-1];
-        end
-        else begin
-          _maximum[i] = _maximum[i-1];
-          _2nd_max[i] = entries_all[i];
-        end
-      end
-      else begin
-        _max_is_valid[i] = _max_is_valid[i-1];
-        _2nd_is_valid[i] = _2nd_is_valid[i-1];
-        _maximum[i] = _maximum[i-1];
-        _2nd_max[i] = _2nd_max[i-1];
-      end
-  end
-endgenerate
-
-assign is_valid[0] = _max_is_valid[BUF_SIZE-1];
-assign is_valid[1] = _2nd_is_valid[BUF_SIZE-1];
-assign entries_target[0] = _maximum[BUF_SIZE-1];
-assign entries_target[1] = _2nd_max[BUF_SIZE-1];
 
 endmodule

@@ -5,7 +5,7 @@ module writer(
   input logic clk,
   input logic [31:0] RAM_READ[RAM_SIZE-1:0],
   output logic [31:0] RAM_WRITE[RAM_SIZE-1:0],
-  input logic enabler,
+  input bool enabler,
   input ldst_mode_t mode,
   input logic [31:0] addr, data
 );
@@ -14,7 +14,7 @@ genvar i;
 generate
   for (i = 0; i < RAM_SIZE; i++) begin: Update
     always_ff @(posedge clk)
-      if ((addr[RAM_SIZE_LOG+1:2]==i) & enabler)
+      if ((addr[RAM_SIZE_LOG+1:2] == i) && (enabler == true))
         RAM_WRITE[i] <= data;
       else
         RAM_WRITE[i] <= RAM_READ[i];
@@ -37,7 +37,8 @@ endmodule
 
 
 module mem(
-  input logic clk, we,
+  input logic clk,
+  input bool we,
   input logic [31:0] ra[4], wa, wd,
   input ldst_mode_t rm[4], wm,
   output logic [31:0] rd[4], stdout

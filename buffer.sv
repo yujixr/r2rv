@@ -68,19 +68,43 @@ module buffer(
   input ex_result_t results[2],
 
   // from COMMIT stage
-  input logic is_really_commited[2], is_commited_store[2],
+  input bool is_really_commited[2], is_commited_store[2],
   input tag_t commited_tags[2],
 
   output entry_t entries[BUF_SIZE]
 );
 
-entry_t entries_next[BUF_SIZE];
+entry_t entries_next[BUF_SIZE], slided_next[BUF_SIZE];
+index_t queue_advance;
 spectag_t _speculative_tag[BUF_SIZE], _specific_speculative_tag[BUF_SIZE];
+
+always_comb
+  // This processor commits in-order,
+  // so when second slot is used, first slot is also used.
+  if (is_really_commited[1]) begin
+    queue_advance = 2;
+  end
+  else if (is_really_commited[0]) begin
+    queue_advance = 1;
+  end
+  else begin
+    queue_advance = 0;
+  end
 
 genvar i;
 generate
   for (i = 0; i < BUF_SIZE; i++) begin: Reg
-    flopr #($bits(entry_t)) ff(.clk, .reset, .d(entries_next[i]), .q(entries[i]));
+    flopr #($bits(entry_t)) ff(.clk, .reset, .d(slided_next[i]), .q(entries[i]));
+    always_comb
+      // Each entry goes to lower index.
+      // Lower index means older entry.
+      if (i + queue_advance < BUF_SIZE) begin
+        slided_next[i] = entries_next[i+queue_advance];
+      end
+      else begin
+        slided_next[i] = 'b0;
+      end
+
     always_comb
       // from DISPATCH stage
       if (entries[i].e_state == S_NOT_USED) begin
@@ -93,12 +117,6 @@ generate
         else begin
           entries_next[i] = 0;
         end
-      end
-
-      // from COMMIT stage
-      else if ((entries[i].tag == commited_tags[0] && is_really_commited[0])
-        || (entries[i].tag == commited_tags[1] && is_really_commited[1])) begin
-        entries_next[i] = 0;
       end
 
       // from EX stage (flash speculative entry)

@@ -5,7 +5,7 @@ module riscv(
   // R: Read, W: Write
   // D: Data, A: Address, M: Mode, E: Enable
   input logic [31:0] rd[4],
-  output logic we,
+  output bool we,
   output logic [31:0] ra[4], wa, wd,
   output ldst_mode_t rm[4], wm
 );
@@ -21,8 +21,9 @@ regfile rf(
 buffer bf(
   .clk, .reset, .is_valid_allocation, .is_tag_flooded,
   .allocation_indexes(allocation_indexes), .entries_new(entries_new),
-  .ex_contents(ex_contents), .results(BF_results), .is_really_commited,
-  .is_commited_store(is_store), .commited_tags(CM_tags), .entries
+  .ex_contents(ex_contents), .results(BF_results),
+  .is_really_commited(is_really_commited), .is_commited_store(is_store),
+  .commited_tags(CM_tags), .entries
 );
 
 // Instruction Fetch
@@ -104,7 +105,7 @@ flopr #($bits(ex_result_t)) EXBF_results_1(.clk, .reset, .d(results[0]), .q(BF_r
 flopr #($bits(ex_result_t)) EXBF_results_2(.clk, .reset, .d(results[1]), .q(BF_results[1]));
 
 // Commit
-logic is_really_commited[2], is_store[2], store_enable;
+bool is_really_commited[2], is_store[2], store_enable;
 logic [4:0] reg_write_addr[2];
 logic [31:0] store_addr, store_data, reg_write_data[2];
 tag_t CM_tags[2];

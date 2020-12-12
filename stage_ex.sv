@@ -1,5 +1,5 @@
 typedef struct packed {
-  logic is_valid;
+  bool is_valid;
   ex_mode_t mode;
   logic is_branch_established;
   spectag_t speculative_tag;
