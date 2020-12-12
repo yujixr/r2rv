@@ -1,24 +1,12 @@
 module commit(
-  input logic is_tag_flooded,
   input entry_t entries[BUF_SIZE],
   output bool is_valid[2], is_store[2], store_enable,
-  output tag_t tags[2],
   output ldst_mode_t store_mode,
   output logic [4:0] reg_addr[2],
   output logic [31:0] store_addr, store_data, reg_data[2]
 );
 
 bool is_2nd_valid, is_2nd_store;
-
-always_comb
-  if (is_tag_flooded) begin
-    tags[0] = { 1'b1, entries[0].tag[BUF_SIZE_LOG-1:0] };
-    tags[1] = { 1'b1, entries[1].tag[BUF_SIZE_LOG-1:0] };
-  end
-  else begin
-    tags[0] = entries[0].tag;
-    tags[1] = entries[1].tag;
-  end
 
 always_comb
   if (entries[0].e_state == S_EXECUTED) begin

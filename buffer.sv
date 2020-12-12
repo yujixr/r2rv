@@ -2,7 +2,7 @@ parameter BUF_SIZE_LOG = 4;
 parameter BUF_SIZE = 2**BUF_SIZE_LOG;
 
 typedef logic [BUF_SIZE_LOG-1:0] index_t;
-typedef logic [BUF_SIZE_LOG:0] tag_t;
+typedef logic [BUF_SIZE_LOG-1:0] tag_t;
 typedef logic [5:0] spectag_t;
 
 typedef enum logic {
@@ -57,7 +57,7 @@ module buffer(
   input logic clk, reset,
 
   // from DISPATCH stage
-  input logic is_valid_allocation[2], is_tag_flooded,
+  input logic is_valid_allocation[2],
   input index_t allocation_indexes[2],
   input entry_t entries_new[2],
 
@@ -69,7 +69,6 @@ module buffer(
 
   // from COMMIT stage
   input bool is_really_commited[2], is_commited_store[2],
-  input tag_t commited_tags[2],
 
   output entry_t entries[BUF_SIZE]
 );
@@ -237,13 +236,7 @@ generate
           entries_next[i].specific_speculative_tag = _specific_speculative_tag[i];
         end
 
-        if (is_tag_flooded) begin
-          entries_next[i].tag = { 1'b1, entries[i].tag[BUF_SIZE_LOG-1:0] };
-        end
-        else begin
-          entries_next[i].tag = entries[i].tag;
-        end
-
+        entries_next[i].tag             = entries[i].tag;
         entries_next[i].Unit            = entries[i].Unit;
         entries_next[i].rwmm            = entries[i].rwmm;
         entries_next[i].Dest            = entries[i].Dest;

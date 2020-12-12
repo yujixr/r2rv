@@ -2,7 +2,7 @@ module dispatch(
   input entry_t entries_all[BUF_SIZE],
   input logic [31:0] reg_data[4],
   input decode_result_t decoded[2],
-  output logic is_valid[2], is_allocatable[2], is_tag_flooded,
+  output logic is_valid[2], is_allocatable[2],
   output logic [4:0] reg_addr[4],
   output index_t indexes[2],
   output entry_t entries_new[2]
@@ -33,24 +33,20 @@ always_comb
 // generate tag, speculative tag
 always_comb
   if (!is_not_empty) begin
-    tag[0] = 5'b01111;
-    tag[1] = 5'b01110;
-    is_tag_flooded = 0;
+    tag[0] = 4'b0000;
+    tag[1] = 4'b0001;
   end
-  else if (tag_before == 5'b00000) begin
-    tag[0] = 5'b01111;
-    tag[1] = 5'b01110;
-    is_tag_flooded = 1;
+  else if (tag_before == 4'b1111) begin
+    tag[0] = 4'b0000;
+    tag[1] = 4'b0001;
   end
-  else if (tag_before == 5'b00001) begin
-    tag[0] = 5'b10000;
-    tag[1] = 5'b01111;
-    is_tag_flooded = 1;
+  else if (tag_before == 4'b1110) begin
+    tag[0] = 4'b1111;
+    tag[1] = 4'b0000;
   end
   else begin
-    tag[0] = tag_before - 5'b00001;
-    tag[1] = tag_before - 5'b00010;
-    is_tag_flooded = 0;
+    tag[0] = tag_before + 4'b00001;
+    tag[1] = tag_before + 4'b00010;
   end
 
 genvar i;

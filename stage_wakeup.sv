@@ -10,7 +10,6 @@ typedef struct packed {
 } ex_content_t;
 
 module wakeup(
-  input logic is_tag_flooded,
   input entry_t entries[BUF_SIZE-1:0],
   output ex_content_t ex_contents[2]
 );
@@ -24,19 +23,12 @@ genvar i;
 generate
   for (i = 0; i < 2; i++) begin: Build_ex_contents
     assign ex_contents[i].is_valid        = is_valid[i];
+    assign ex_contents[i].tag             = entries_target[i].tag;
     assign ex_contents[i].rm              = entries_target[i].rwmm;
     assign ex_contents[i].speculative_tag = entries_target[i].specific_speculative_tag;
     assign ex_contents[i].Vj              = entries_target[i].Vj;
     assign ex_contents[i].A               = entries_target[i].A;
     assign ex_contents[i].pc              = entries_target[i].pc;
-
-    always_comb
-      if (is_tag_flooded) begin
-        ex_contents[i].tag = { 1'b1, entries_target[i].tag[BUF_SIZE_LOG-1:0] };
-      end
-      else begin
-        ex_contents[i].tag = entries_target[i].tag;
-      end
 
     always_comb
       if (entries_target[i].A_rdy) begin

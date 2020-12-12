@@ -8,7 +8,6 @@ typedef struct packed {
 } ex_result_t;
 
 module ex(
-  input is_tag_flooded,
   input ex_content_t ex_contents[2],
   input logic [31:0] load_data[2],
   output ldst_mode_t load_mode[2],
@@ -26,18 +25,11 @@ generate
     assign load_mode[i] = ex_contents[i].rm;
     assign load_addr[i] = ex_contents[i].A;
 
+    assign results[i].tag             = ex_contents[i].tag;
     assign results[i].is_valid        = ex_contents[i].is_valid;
     assign results[i].mode            = ex_contents[i].mode;
     assign results[i].speculative_tag = ex_contents[i].speculative_tag;
     assign results[i].jumped_to       = ex_contents[i].A;
-
-    always_comb
-      if (is_tag_flooded) begin
-        results[i].tag = { 1'b1, ex_contents[i].tag[BUF_SIZE_LOG-1:0] };
-      end
-      else begin
-        results[i].tag = ex_contents[i].tag;
-      end
 
     alu alu(.Vj(ex_contents[i].Vj), .Vk(ex_contents[i].Vk), .Op(ex_contents[i].Op), .y(alu_result[i]));
     mul mul(.Vj(ex_contents[i].Vj), .Vk(ex_contents[i].Vk), .Op(ex_contents[i].Op), .y(mul_result[i]));

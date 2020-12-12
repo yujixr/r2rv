@@ -19,11 +19,10 @@ regfile rf(
 );
 
 buffer bf(
-  .clk, .reset, .is_valid_allocation, .is_tag_flooded,
+  .clk, .reset, .is_valid_allocation,
   .allocation_indexes(allocation_indexes), .entries_new(entries_new),
   .ex_contents(ex_contents), .results(BF_results),
-  .is_really_commited(is_really_commited), .is_commited_store(is_store),
-  .commited_tags(CM_tags), .entries
+  .is_really_commited(is_really_commited), .is_commited_store(is_store), .entries
 );
 
 // Instruction Fetch
@@ -58,7 +57,7 @@ decode_result_t DI_decoded[2];
 twinflop #($bits(decode_result_t)) IDDI_decoded(.clk, .reset(flash), .can_proceed, .in(decoded), .out(DI_decoded));
 
 // Dispatch
-logic is_valid_allocation[2], can_proceed[2], is_tag_flooded;
+logic is_valid_allocation[2], can_proceed[2];
 logic [4:0] reg_read_addr[4];
 logic [31:0] reg_read_data[4];
 index_t allocation_indexes[2];
@@ -66,14 +65,14 @@ entry_t entries_new[2];
 
 dispatch STAGE_DI(
   .entries_all(entries), .reg_data(reg_read_data), .decoded(DI_decoded),
-  .is_valid(is_valid_allocation), .is_allocatable(can_proceed), .is_tag_flooded, .reg_addr(reg_read_addr), 
+  .is_valid(is_valid_allocation), .is_allocatable(can_proceed), .reg_addr(reg_read_addr), 
   .entries_new, .indexes(allocation_indexes)
 );
 
 // Wakeup
 ex_content_t ex_contents[2];
 
-wakeup STAGE_WU(.is_tag_flooded, .entries, .ex_contents);
+wakeup STAGE_WU(.entries, .ex_contents);
 
 // WU -> EX
 ex_content_t EX_ex_contents[2];
@@ -87,8 +86,8 @@ ldst_mode_t load_mode[2];
 ex_result_t results[2];
 
 ex STAGE_EX(
-  .is_tag_flooded, .ex_contents(EX_ex_contents), .load_data,
-  .load_mode, .load_addr, .is_branch_established, .jumped_to, .results
+  .ex_contents(EX_ex_contents), .load_data, .load_mode,
+  .load_addr, .is_branch_established, .jumped_to, .results
 );
 
 assign ra[2] = load_addr[0];
@@ -108,11 +107,10 @@ flopr #($bits(ex_result_t)) EXBF_results_2(.clk, .reset, .d(results[1]), .q(BF_r
 bool is_really_commited[2], is_store[2], store_enable;
 logic [4:0] reg_write_addr[2];
 logic [31:0] store_addr, store_data, reg_write_data[2];
-tag_t CM_tags[2];
 ldst_mode_t store_mode;
 
 commit STAGE_CM(
-  .is_tag_flooded, .entries, .is_valid(is_really_commited), .is_store, .tags(CM_tags),
+  .entries, .is_valid(is_really_commited), .is_store,
   .store_enable, .store_mode, .reg_addr(reg_write_addr), .store_addr,
   .store_data, .reg_data(reg_write_data)
 );
