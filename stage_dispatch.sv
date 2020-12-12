@@ -10,7 +10,7 @@ module dispatch(
 
 logic is_buffer_ok[2], is_spectag_ok[2], is_branch[2], is_used_reg[4], is_not_empty;
 logic [4:0] reg_target[4];
-logic [5:0] spectag[2], spectag_specific[2], spec_tag_before;
+spectag_t spectag[2], spectag_specific[2], spec_tag_before;
 index_t number_of_store_ops;
 tag_t lastused_tag[4];
 
@@ -81,19 +81,19 @@ generate
     always_comb
       if (decoded[j].Qj == 0) begin
         reg_addr[j*2]        = 5'b0;
-        entries_new[j].J_rdy = 1;
+        entries_new[j].J_rdy = true;
         entries_new[j].Vj    = decoded[j].Vj;
         entries_new[j].Qj    = 'b0;
       end
       else if (is_used_reg[j*2]) begin
         reg_addr[j*2]        = 5'b0;
-        entries_new[j].J_rdy = 0;
+        entries_new[j].J_rdy = false;
         entries_new[j].Vj    = 32'b0;
         entries_new[j].Qj    = lastused_tag[j*2];
       end
       else begin
         reg_addr[j*2]        = decoded[j].Qj;
-        entries_new[j].J_rdy = 1;
+        entries_new[j].J_rdy = true;
         entries_new[j].Vj    = reg_data[j*2];
         entries_new[j].Qj    = 'b0;
       end
@@ -101,19 +101,19 @@ generate
     always_comb
       if (decoded[j].Qk == 0) begin
         reg_addr[j*2+1]      = 5'b0;
-        entries_new[j].K_rdy = 1;
+        entries_new[j].K_rdy = true;
         entries_new[j].Vk    = decoded[j].Vk;
         entries_new[j].Qk    = 'b0;
       end
       else if (is_used_reg[j*2+1]) begin
         reg_addr[j*2+1]      = 5'b0;
-        entries_new[j].K_rdy = 0;
+        entries_new[j].K_rdy = false;
         entries_new[j].Vk    = 32'b0;
         entries_new[j].Qk    = lastused_tag[j*2+1];
       end
       else begin
         reg_addr[j*2+1]      = decoded[j].Qk;
-        entries_new[j].K_rdy = 1;
+        entries_new[j].K_rdy = true;
         entries_new[j].Vk    = reg_data[j*2+1];
         entries_new[j].Qk    = 'b0;
       end
@@ -127,13 +127,13 @@ module last_finder(
   input entry_t entries[BUF_SIZE],
   output logic is_valid,
   output tag_t tag,
-  output logic [5:0] spec_tag,
+  output spectag_t spec_tag,
   output index_t number_of_store_ops
 );
 
 logic _is_valid[BUF_SIZE];
 tag_t mintag[BUF_SIZE];
-logic [5:0] _spec_tag[BUF_SIZE];
+spectag_t _spec_tag[BUF_SIZE];
 index_t _number_of_store_ops[BUF_SIZE];
 
 assign _is_valid[0] = entries[0].e_state != S_NOT_USED;
@@ -184,13 +184,13 @@ endmodule
 // speculative tag (6bit decoded)
 module spectag_generator(
   input logic is_branch[2],
-  input logic [5:0] tag_before,
+  input spectag_t tag_before,
   output logic is_valid[2],
-  output logic [5:0] tag[2], tag_specific[2]
+  output spectag_t tag[2], tag_specific[2]
 );
 
 logic _is_valid[2], _unused_isvld[6], _second_isvld[6];
-logic [5:0] unused_slot[2], _unused_slot[6], _second_slot[6];
+spectag_t unused_slot[2], _unused_slot[6], _second_slot[6];
 
 assign _unused_isvld[0] = ((tag_before & 6'b000001) == '0);
 assign _second_isvld[0] = 0;

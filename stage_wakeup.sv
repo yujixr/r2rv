@@ -3,7 +3,7 @@ typedef struct packed {
   unit_t Unit;
   ex_mode_t mode;
   ldst_mode_t rm;
-  logic [5:0] speculative_tag;
+  spectag_t speculative_tag;
   logic [9:0] Op;
   logic [31:0] Vj, Vk, A, pc;
   tag_t tag;

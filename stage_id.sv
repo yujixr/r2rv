@@ -1,7 +1,7 @@
 typedef struct packed {
   logic is_valid;
   unit_t Unit;
-  logic A_rdy;
+  bool A_rdy;
   ldst_mode_t rwmm;
   logic [4:0] Qj, Qk, Dest;
   logic [9:0] Op;

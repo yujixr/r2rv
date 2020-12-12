@@ -3,6 +3,7 @@ parameter BUF_SIZE = 2**BUF_SIZE_LOG;
 
 typedef logic [BUF_SIZE_LOG-1:0] index_t;
 typedef logic [BUF_SIZE_LOG:0] tag_t;
+typedef logic [5:0] spectag_t;
 
 typedef enum logic {
   false = 1'b0,
@@ -34,18 +35,18 @@ typedef enum logic [2:0] {
   U_HALF_WORD = 3'b101
 } ldst_mode_t;
 
-typedef enum logic [0:0] {
+typedef enum logic {
   EX_NORMAL,
   EX_GEN_ADDR
 } ex_mode_t;
 
 typedef struct packed {
-  logic J_rdy, K_rdy, A_rdy;
+  bool J_rdy, K_rdy, A_rdy;
   state_t e_state;
   unit_t Unit;
   ldst_mode_t rwmm;
   logic [4:0] Dest;
-  logic [5:0] speculative_tag, specific_speculative_tag;
+  spectag_t speculative_tag, specific_speculative_tag;
   logic [9:0] Op;
   logic [31:0] Vj, Vk, A, pc, result;
   index_t number_of_early_store_ops;
@@ -74,7 +75,7 @@ module buffer(
 );
 
 entry_t entries_next[BUF_SIZE];
-logic [5:0] _speculative_tag[BUF_SIZE], _specific_speculative_tag[BUF_SIZE];
+spectag_t _speculative_tag[BUF_SIZE], _specific_speculative_tag[BUF_SIZE];
 
 genvar i;
 generate
@@ -127,7 +128,7 @@ generate
           if (results[0].mode == EX_GEN_ADDR) begin
             entries_next[i].e_state = (entries[i].Unit == STORE) ? S_EXECUTED : S_ADDR_GENERATED;
             entries_next[i].result = entries[i].result;
-            entries_next[i].A_rdy = 1;
+            entries_next[i].A_rdy = true;
             entries_next[i].A = results[0].result;
           end
           else begin
@@ -141,7 +142,7 @@ generate
           if (results[1].mode == EX_GEN_ADDR) begin
             entries_next[i].e_state = (entries[i].Unit == STORE) ? S_EXECUTED : S_ADDR_GENERATED;
             entries_next[i].result = entries[i].result;
-            entries_next[i].A_rdy = 1;
+            entries_next[i].A_rdy = true;
             entries_next[i].A = results[1].result;
           end
           else begin
@@ -160,12 +161,12 @@ generate
 
         // Operand J
         if (!entries[i].J_rdy && results[0].tag == entries[i].Qj && results[0].mode == EX_NORMAL && results[0].is_valid) begin
-          entries_next[i].J_rdy = 1;
+          entries_next[i].J_rdy = true;
           entries_next[i].Qj = 0;
           entries_next[i].Vj = results[0].result;
         end
         else if (!entries[i].J_rdy && results[1].tag == entries[i].Qj && results[1].mode == EX_NORMAL && results[1].is_valid) begin
-          entries_next[i].J_rdy = 1;
+          entries_next[i].J_rdy = true;
           entries_next[i].Qj = 0;
           entries_next[i].Vj = results[1].result;
         end
@@ -177,12 +178,12 @@ generate
 
         // Operand K
         if (!entries[i].K_rdy && results[0].tag == entries[i].Qk && results[0].mode == EX_NORMAL && results[0].is_valid) begin
-          entries_next[i].K_rdy = 1;
+          entries_next[i].K_rdy = true;
           entries_next[i].Qk = 0;
           entries_next[i].Vk = results[0].result;
         end
         else if (!entries[i].K_rdy && results[1].tag == entries[i].Qk && results[1].mode == EX_NORMAL && results[1].is_valid) begin
-          entries_next[i].K_rdy = 1;
+          entries_next[i].K_rdy = true;
           entries_next[i].Qk = 0;
           entries_next[i].Vk = results[1].result;
         end

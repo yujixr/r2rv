@@ -2,7 +2,7 @@ typedef struct packed {
   logic is_valid;
   ex_mode_t mode;
   logic is_branch_established;
-  logic [5:0] speculative_tag;
+  spectag_t speculative_tag;
   logic [31:0] result, jumped_to;
   tag_t tag;
 } ex_result_t;

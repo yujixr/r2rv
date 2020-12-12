@@ -1,6 +1,6 @@
 module decoder(
   input logic [31:0] instr, pc,
-  output logic A_rdy,
+  output bool A_rdy,
   output unit_t Unit,
   output ldst_mode_t rwmm,
   output logic [4:0] Qj, Qk, Dest,
@@ -49,18 +49,18 @@ assign _Unit = unit_t'(Op[0] ? (Op[9] ? DIV : MUL) : ALU);
 
 always_comb
   case (opcode)
-    C_OP_IMM:   begin Unit = _Unit;  Op = OP_IMM_Op;          Qj = _Qj;  Qk = 5'b0; Vj = 32'b0; Vk = imm_i; A = 32'b0;      A_rdy = 1; Dest = _Dest; rwmm = BYTE; end
-    C_LUI:      begin Unit = ALU;    Op = 10'b0;              Qj = 5'b0; Qk = 5'b0; Vj = 32'b0; Vk = imm_u; A = 32'b0;      A_rdy = 1; Dest = _Dest; rwmm = BYTE; end
-    C_AUIPC:    begin Unit = ALU;    Op = 10'b0;              Qj = 5'b0; Qk = 5'b0; Vj = pc;    Vk = imm_u; A = 32'b0;      A_rdy = 1; Dest = _Dest; rwmm = BYTE; end
-    C_OP:       begin Unit = _Unit;  Op = { funct3, funct7 }; Qj = _Qj;  Qk = _Qk;  Vj = 32'b0; Vk = 32'b0; A = 32'b0;      A_rdy = 1; Dest = _Dest; rwmm = BYTE; end
-    C_JAL:      begin Unit = BRANCH; Op = 10'b0;              Qj = 5'b0; Qk = 5'b0; Vj = 32'b0; Vk = 32'b0; A = pc + imm_j; A_rdy = 1; Dest = _Dest; rwmm = BYTE; end
-    C_JALR:     begin Unit = BRANCH; Op = { funct3, 7'b0 };   Qj = _Qj;  Qk = _Qj;  Vj = 32'b0; Vk = 32'b0; A = imm_i;      A_rdy = 0; Dest = _Dest; rwmm = BYTE; end
-    C_BRANCH:   begin Unit = BRANCH; Op = { funct3, 7'b0 };   Qj = _Qj;  Qk = _Qk;  Vj = 32'b0; Vk = 32'b0; A = pc + imm_b; A_rdy = 1; Dest = 5'b0;  rwmm = BYTE; end
-    C_LOAD:     begin Unit = LOAD;   Op = { funct3, 7'b0 };   Qj = _Qj;  Qk = 5'b0; Vj = 32'b0; Vk = 32'b0; A = imm_i;      A_rdy = 0; Dest = _Dest; rwmm = ldst_mode_t'(funct3); end
-    C_STORE:    begin Unit = STORE;  Op = { funct3, 7'b0 };   Qj = _Qj;  Qk = _Qk;  Vj = 32'b0; Vk = 32'b0; A = imm_s;      A_rdy = 0; Dest = 5'b0;  rwmm = ldst_mode_t'(funct3); end
-    C_MISC_MEM: begin Unit = ALU;    Op = { funct3, 7'b0 };   Qj = _Qj;  Qk = 5'b0; Vj = 32'b0; Vk = 32'b0; A = 32'b0;      A_rdy = 1; Dest = 5'b0;  rwmm = BYTE; end
-    C_SYSTEM:   begin Unit = ALU;    Op = { funct3, 7'b0 };   Qj = 5'b0; Qk = 5'b0; Vj = 32'b0; Vk = 32'b0; A = 32'b0;      A_rdy = 1; Dest = 5'b0;  rwmm = BYTE; end
-    default:    begin Unit = ALU;    Op = 10'b0;              Qj = 5'b0; Qk = 5'b0; Vj = 32'b0; Vk = 32'b0; A = 32'b0;      A_rdy = 1; Dest = 5'b0;  rwmm = BYTE; end
+    C_OP_IMM:   begin Unit = _Unit;  Op = OP_IMM_Op;          Qj = _Qj;  Qk = 5'b0; Vj = 32'b0; Vk = imm_i; A = 32'b0;      A_rdy = true;  Dest = _Dest; rwmm = BYTE; end
+    C_LUI:      begin Unit = ALU;    Op = 10'b0;              Qj = 5'b0; Qk = 5'b0; Vj = 32'b0; Vk = imm_u; A = 32'b0;      A_rdy = true;  Dest = _Dest; rwmm = BYTE; end
+    C_AUIPC:    begin Unit = ALU;    Op = 10'b0;              Qj = 5'b0; Qk = 5'b0; Vj = pc;    Vk = imm_u; A = 32'b0;      A_rdy = true;  Dest = _Dest; rwmm = BYTE; end
+    C_OP:       begin Unit = _Unit;  Op = { funct3, funct7 }; Qj = _Qj;  Qk = _Qk;  Vj = 32'b0; Vk = 32'b0; A = 32'b0;      A_rdy = true;  Dest = _Dest; rwmm = BYTE; end
+    C_JAL:      begin Unit = BRANCH; Op = 10'b0;              Qj = 5'b0; Qk = 5'b0; Vj = 32'b0; Vk = 32'b0; A = pc + imm_j; A_rdy = true;  Dest = _Dest; rwmm = BYTE; end
+    C_JALR:     begin Unit = BRANCH; Op = { funct3, 7'b0 };   Qj = _Qj;  Qk = _Qj;  Vj = 32'b0; Vk = 32'b0; A = imm_i;      A_rdy = false; Dest = _Dest; rwmm = BYTE; end
+    C_BRANCH:   begin Unit = BRANCH; Op = { funct3, 7'b0 };   Qj = _Qj;  Qk = _Qk;  Vj = 32'b0; Vk = 32'b0; A = pc + imm_b; A_rdy = true;  Dest = 5'b0;  rwmm = BYTE; end
+    C_LOAD:     begin Unit = LOAD;   Op = { funct3, 7'b0 };   Qj = _Qj;  Qk = 5'b0; Vj = 32'b0; Vk = 32'b0; A = imm_i;      A_rdy = false; Dest = _Dest; rwmm = ldst_mode_t'(funct3); end
+    C_STORE:    begin Unit = STORE;  Op = { funct3, 7'b0 };   Qj = _Qj;  Qk = _Qk;  Vj = 32'b0; Vk = 32'b0; A = imm_s;      A_rdy = false; Dest = 5'b0;  rwmm = ldst_mode_t'(funct3); end
+    C_MISC_MEM: begin Unit = ALU;    Op = { funct3, 7'b0 };   Qj = _Qj;  Qk = 5'b0; Vj = 32'b0; Vk = 32'b0; A = 32'b0;      A_rdy = true;  Dest = 5'b0;  rwmm = BYTE; end
+    C_SYSTEM:   begin Unit = ALU;    Op = { funct3, 7'b0 };   Qj = 5'b0; Qk = 5'b0; Vj = 32'b0; Vk = 32'b0; A = 32'b0;      A_rdy = true;  Dest = 5'b0;  rwmm = BYTE; end
+    default:    begin Unit = ALU;    Op = 10'b0;              Qj = 5'b0; Qk = 5'b0; Vj = 32'b0; Vk = 32'b0; A = 32'b0;      A_rdy = true;  Dest = 5'b0;  rwmm = BYTE; end
   endcase
 
 endmodule
