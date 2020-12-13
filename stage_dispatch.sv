@@ -8,8 +8,9 @@ module dispatch(
   output entry_t entries_new[2]
 );
 
-logic is_buffer_ok[2], is_spectag_ok[2], is_branch[2], is_used_reg[4], is_not_empty;
+bool is_buffer_ok[2], is_spectag_ok[2], is_branch[2], is_used_reg[4], is_calculated[4], is_not_empty;
 logic [4:0] reg_target[4];
+logic [31:0] calculated_value[4];
 spectag_t spectag[2], spectag_specific[2], spec_tag_before;
 index_t number_of_store_ops;
 tag_t lastused_tag[4], tag_before, tag[2];
@@ -52,11 +53,19 @@ always_comb
 genvar i;
 generate
   for (i = 0; i < 2; i++) begin: assign_is_branch
-    assign is_branch[i] = (decoded[i].Unit==BRANCH);
+    assign is_branch[i] = bool'(decoded[i].Unit == BRANCH);
   end
 endgenerate
-spectag_generator generate_spectag(.is_branch, .tag_before(spec_tag_before), .is_valid(is_spectag_ok), .tag(spectag), .tag_specific(spectag_specific));
-check_reg_used check_regs(.entries(entries_all), .reg_target, .is_used(is_used_reg), .tags(lastused_tag));
+
+spectag_generator generate_spectag(
+  .is_branch(is_branch), .tag_before(spec_tag_before), .is_valid(is_spectag_ok),
+  .tag(spectag), .tag_specific(spectag_specific)
+);
+
+check_reg_used check_regs(
+  .entries(entries_all), .reg_target, .is_used(is_used_reg),
+  .is_calculated, .tags(lastused_tag), .calculated_value
+);
 
 assign entries_new[0].number_of_early_store_ops = number_of_store_ops;
 assign entries_new[1].number_of_early_store_ops = number_of_store_ops + ((decoded[0].Unit == STORE) ? 1'b1 : '0);
@@ -92,17 +101,23 @@ generate
         entries_new[j].Vj    = decoded[j].Vj;
         entries_new[j].Qj    = 'b0;
       end
-      else if (is_used_reg[j*2]) begin
-        reg_addr[j*2]        = 5'b0;
-        entries_new[j].J_rdy = false;
-        entries_new[j].Vj    = 32'b0;
-        entries_new[j].Qj    = lastused_tag[j*2];
-      end
-      else begin
+      else if (!is_used_reg[j*2]) begin
         reg_addr[j*2]        = decoded[j].Qj;
         entries_new[j].J_rdy = true;
         entries_new[j].Vj    = reg_data[j*2];
         entries_new[j].Qj    = 'b0;
+      end
+      else if(is_calculated[j*2]) begin
+        reg_addr[j*2]        = 5'b0;
+        entries_new[j].J_rdy = true;
+        entries_new[j].Vj    = calculated_value[j*2];
+        entries_new[j].Qj    = 'b0;
+      end
+      else begin
+        reg_addr[j*2]        = 5'b0;
+        entries_new[j].J_rdy = false;
+        entries_new[j].Vj    = 32'b0;
+        entries_new[j].Qj    = lastused_tag[j*2];
       end
 
     always_comb
@@ -112,17 +127,23 @@ generate
         entries_new[j].Vk    = decoded[j].Vk;
         entries_new[j].Qk    = 'b0;
       end
-      else if (is_used_reg[j*2+1]) begin
-        reg_addr[j*2+1]      = 5'b0;
-        entries_new[j].K_rdy = false;
-        entries_new[j].Vk    = 32'b0;
-        entries_new[j].Qk    = lastused_tag[j*2+1];
-      end
-      else begin
+      else if (!is_used_reg[j*2+1]) begin
         reg_addr[j*2+1]      = decoded[j].Qk;
         entries_new[j].K_rdy = true;
         entries_new[j].Vk    = reg_data[j*2+1];
         entries_new[j].Qk    = 'b0;
+      end
+      else if(is_calculated[j*2+1]) begin
+        reg_addr[j*2+1]      = 5'b0;
+        entries_new[j].K_rdy = true;
+        entries_new[j].Vk    = calculated_value[j*2+1];
+        entries_new[j].Qk    = 'b0;
+      end
+      else begin
+        reg_addr[j*2+1]      = 5'b0;
+        entries_new[j].K_rdy = false;
+        entries_new[j].Vk    = 32'b0;
+        entries_new[j].Qk    = lastused_tag[j*2+1];
       end
   end
 endgenerate
@@ -208,24 +229,24 @@ endmodule
 module spectag_generator(
   input logic is_branch[2],
   input spectag_t tag_before,
-  output logic is_valid[2],
+  output bool is_valid[2],
   output spectag_t tag[2], tag_specific[2]
 );
 
-logic _is_valid[2], _unused_isvld[6], _second_isvld[6];
+bool _is_valid[2], _unused_isvld[6], _second_isvld[6];
 spectag_t unused_slot[2], _unused_slot[6], _second_slot[6];
 
-assign _unused_isvld[0] = ((tag_before & 6'b000001) == '0);
-assign _second_isvld[0] = 0;
-assign _unused_slot[0] = 6'b000001;
-assign _second_slot[0] = '0;
+assign _unused_isvld[0] = bool'((tag_before & 6'b000001) == '0);
+assign _second_isvld[0] = false;
+assign _unused_slot[0]  = 6'b000001;
+assign _second_slot[0]  = '0;
 
 genvar i;
 generate
   for (i = 1; i < 6; i++) begin: search_unused_slot
     always_comb
       if (tag_before & (6'b000001 << i) == '0) begin
-        _unused_isvld[i] = 1;
+        _unused_isvld[i] = true;
         _second_isvld[i] = _unused_isvld[i-1];
         _unused_slot[i] = (6'b000001 << i);
         _second_slot[i] = _unused_slot[i-1];
@@ -263,7 +284,7 @@ always_comb
   else begin
     tag[0]            = tag_before;
     tag_specific[0]   = 6'b0;
-    is_valid[0]       = 1;
+    is_valid[0]       = true;
     if (is_branch[1]) begin
       tag[1]          = tag[0] | unused_slot[0];
       tag_specific[1] = unused_slot[0];
@@ -272,7 +293,7 @@ always_comb
     else begin
       tag[1]          = tag[0];
       tag_specific[1] = 6'b0;
-      is_valid[1]     = 1;
+      is_valid[1]     = true;
     end
   end
 
@@ -283,33 +304,43 @@ endmodule
 module check_reg_used(
   input entry_t entries[BUF_SIZE],
   input logic [4:0] reg_target[4],
-  output logic is_used[4],
-  output tag_t tags[4]
+  output bool is_used[4], is_calculated[4],
+  output tag_t tags[4],
+  output logic [31:0] calculated_value[4]
 );
 
+bool _is_used[BUF_SIZE*4], _is_calculated[BUF_SIZE*4];
 tag_t _tags[BUF_SIZE*4];
-logic _is_used[BUF_SIZE*4];
+logic [31:0] _calculated_value[BUF_SIZE*4];
 
 genvar i, j;
 generate
   for (i = 0; i < 4; i++) begin: each_registers
-    assign _tags[BUF_SIZE*i]    = entries[0].tag;
-    assign _is_used[BUF_SIZE*i] = entries[0].Dest == reg_target[i];
+    assign _is_used[BUF_SIZE*i]          = bool'(entries[0].Dest == reg_target[i]);
+    assign _is_calculated[BUF_SIZE*i]    = bool'(entries[0].e_state == S_EXECUTED);
+    assign _tags[BUF_SIZE*i]             = entries[0].tag;
+    assign _calculated_value[BUF_SIZE*i] = entries[0].result;
 
     for (j = 1; j < BUF_SIZE; j++) begin: check_dest
       always_comb
         if (entries[j].Dest == reg_target[i]) begin
-          _tags[BUF_SIZE*i+j]    = entries[j].tag;
-          _is_used[BUF_SIZE*i+j] = 1;
+          _is_used[BUF_SIZE*i+j]          = true;
+          _is_calculated[BUF_SIZE*i+j]    = bool'(entries[j].e_state == S_EXECUTED);
+          _tags[BUF_SIZE*i+j]             = entries[j].tag;
+          _calculated_value[BUF_SIZE*i+j] = entries[j].result;
         end
         else begin
-          _tags[BUF_SIZE*i+j]    = _tags[BUF_SIZE*i+j-1];
-          _is_used[BUF_SIZE*i+j] = _is_used[BUF_SIZE*i+j-1];
+          _is_used[BUF_SIZE*i+j]          = _is_used[BUF_SIZE*i+j-1];
+          _is_calculated[BUF_SIZE*i+j]    = _is_calculated[BUF_SIZE*i+j-1];
+          _tags[BUF_SIZE*i+j]             = _tags[BUF_SIZE*i+j-1];
+          _calculated_value[BUF_SIZE*i+j] = _calculated_value[BUF_SIZE*i+j-1];
         end
     end
 
-    assign tags[i]    = _tags[BUF_SIZE*(i+1)-1];
-    assign is_used[i] = _is_used[BUF_SIZE*(i+1)-1];
+    assign is_used[i]          = _is_used[BUF_SIZE*(i+1)-1];
+    assign is_calculated[i]    = _is_calculated[BUF_SIZE*(i+1)-1];
+    assign tags[i]             = _tags[BUF_SIZE*(i+1)-1];
+    assign calculated_value[i] = _calculated_value[BUF_SIZE*(i+1)-1];
   end
 endgenerate
 
