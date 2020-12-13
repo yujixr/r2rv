@@ -9,11 +9,11 @@ module commit(
 bool is_2nd_valid, is_2nd_store;
 
 always_comb
-  if (entries[0].e_state == S_EXECUTED) begin
+  if (entries[0].e_state == S_EXECUTED && entries[0].speculative_tag == 'b0) begin
     is_valid[0] = true;
     reg_addr[0] = entries[0].Dest;
     reg_data[0] = entries[0].result;
-    is_store[0] = bool'(entries[0].Unit == STORE);
+    is_store[0] = bool'(entries[0].Unit == STORE?true:false);
   end
   else begin
     is_valid[0] = false;
@@ -22,7 +22,7 @@ always_comb
     is_store[0] = false;
   end
 
-assign is_2nd_valid = bool'(entries[1].e_state == S_EXECUTED);
+assign is_2nd_valid = bool'(entries[1].e_state == S_EXECUTED && entries[1].speculative_tag == 'b0);
 assign is_2nd_store = bool'(entries[1].Unit == STORE);
 
 always_comb
@@ -40,23 +40,17 @@ always_comb
   end
 
 always_comb
-  if (is_store[0]) begin
+  if (is_store[0] == true) begin
     store_enable = true;
     store_mode = entries[0].rwmm;
     store_addr = entries[0].A;
     store_data = entries[0].Vk;
   end
-  else if (is_store[1]) begin
-    store_enable = true;
+  else begin
+    store_enable = is_store[1];
     store_mode = entries[1].rwmm;
     store_addr = entries[1].A;
     store_data = entries[1].Vk;
-  end
-  else begin
-    store_enable = false;
-    store_mode = WORD;
-    store_addr = 32'b0;
-    store_data = 32'b0;
   end
 
 endmodule
