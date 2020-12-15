@@ -14,11 +14,11 @@ genvar i;
 generate
   for (i = 1; i < REG_SIZE; i++) begin: Reg
     always_comb
-      if (wa[0] == i) begin
-        d[i] = wd[0];
-      end
-      else if (wa[1] == i) begin
+      if (wa[1] == i) begin
         d[i] = wd[1];
+      end
+      else if (wa[0] == i) begin
+        d[i] = wd[0];
       end
       else begin
         d[i] = rf[i];
