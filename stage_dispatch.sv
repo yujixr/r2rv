@@ -46,8 +46,8 @@ always_comb
     tag[1] = 4'b0000;
   end
   else begin
-    tag[0] = tag_before + 4'b00001;
-    tag[1] = tag_before + 4'b00010;
+    tag[0] = tag_before + 4'b0001;
+    tag[1] = tag_before + 4'b0010;
   end
 
 genvar i;
@@ -158,69 +158,52 @@ module finder_next(
   output entry_t latest_entry
 );
 
-bool _is_valid_maxval[BUF_SIZE], _is_valid_second[BUF_SIZE], _is_valid_latest[BUF_SIZE];
-index_t _maxval_index[BUF_SIZE], _second_index[BUF_SIZE];
+index_t _minval_index[BUF_SIZE], _second_index[BUF_SIZE];
 entry_t _latest_entry[BUF_SIZE];
 
 always_comb
   if (entries[BUF_SIZE-1].e_state == S_NOT_USED) begin
-    _is_valid_maxval[BUF_SIZE-1] = true;
-    _is_valid_latest[BUF_SIZE-1] = false;
+    _latest_entry[BUF_SIZE-1] = entries[BUF_SIZE-2];
   end
   else begin
-    _is_valid_maxval[BUF_SIZE-1] = false;
-    _is_valid_latest[BUF_SIZE-1] = true;
+    _latest_entry[BUF_SIZE-1] = entries[BUF_SIZE-1];
   end
 
-assign _is_valid_second[BUF_SIZE-1] = false;
-assign _maxval_index[BUF_SIZE-1] = $bits(index_t)'(BUF_SIZE-1);
+assign _minval_index[BUF_SIZE-1] = $bits(index_t)'(BUF_SIZE-1);
 assign _second_index[BUF_SIZE-1] = 'b0;
-assign _latest_entry[BUF_SIZE-1] = entries[BUF_SIZE-1];
 
 genvar i;
 generate
-  for (i = BUF_SIZE-2; i >= 0; i--) begin: search_all_for_dispatch
+  for (i = BUF_SIZE-2; i >= 1; i--) begin: free_entry
     always_comb
       if (entries[i].e_state == S_NOT_USED) begin
-        _is_valid_maxval[i] = true;
-        _is_valid_second[i] = _is_valid_maxval[i+1];
-        _is_valid_latest[i] = _is_valid_latest[i+1];
-        _maxval_index[i]    = $bits(index_t)'(i);
-        _second_index[i]    = _maxval_index[i+1];
-        _latest_entry[i]    = _latest_entry[i+1];
+        _minval_index[i]    = $bits(index_t)'(i);
+        _second_index[i]    = $bits(index_t)'(i+1);
+        _latest_entry[i]    = entries[i-1];
       end
       else begin
-        _is_valid_maxval[i] = _is_valid_maxval[i+1];
-        _is_valid_second[i] = _is_valid_second[i+1];
-        _is_valid_latest[i] = true;
-        _maxval_index[i]    = _maxval_index[i+1];
+        _minval_index[i]    = _minval_index[i+1];
         _second_index[i]    = _second_index[i+1];
-        _latest_entry[i]    = entries[i];
+        _latest_entry[i]    = _latest_entry[i+1];
       end
   end
 endgenerate
 
 always_comb
-  // Lower means older.
-  if (_is_valid_second[0] == true) begin
-    is_valid_indexes[0] = true;
-    is_valid_indexes[1] = true;
-    allocatable_indexes[0] = _second_index[0];
-  end
-  else if (_is_valid_maxval[0] == true) begin
-    is_valid_indexes[0] = true;
-    is_valid_indexes[1] = false;
-    allocatable_indexes[0] = _maxval_index[0];
+  if (entries[0].e_state == S_NOT_USED) begin
+    allocatable_indexes[0] = $bits(index_t)'(0);
+    allocatable_indexes[1] = $bits(index_t)'(1);
+    latest_entry           = 'b0;
   end
   else begin
-    is_valid_indexes[0] = false;
-    is_valid_indexes[1] = false;
-    allocatable_indexes[0] = 'b0;
+    allocatable_indexes[0] = _minval_index[1];
+    allocatable_indexes[1] = _second_index[1];
+    latest_entry           = _latest_entry[1];
   end
 
-assign allocatable_indexes[1] = _maxval_index[0];
-assign is_valid_latest_entry  = _is_valid_latest[0];
-assign latest_entry           = _latest_entry[0];
+assign is_valid_indexes[0] = bool'(entries[BUF_SIZE-1].e_state == S_NOT_USED);
+assign is_valid_indexes[1] = bool'(entries[BUF_SIZE-2].e_state == S_NOT_USED);
+assign is_valid_latest_entry = bool'(entries[0].e_state != S_NOT_USED);
 
 endmodule
 

@@ -13,7 +13,7 @@ always_comb
     is_valid[0] = true;
     reg_addr[0] = entries[0].Dest;
     reg_data[0] = entries[0].result;
-    is_store[0] = bool'(entries[0].Unit == STORE?true:false);
+    is_store[0] = bool'(entries[0].Unit == STORE);
   end
   else begin
     is_valid[0] = false;
@@ -26,7 +26,7 @@ assign is_2nd_valid = bool'(entries[1].e_state == S_EXECUTED && entries[1].specu
 assign is_2nd_store = bool'(entries[1].Unit == STORE);
 
 always_comb
-  if (is_2nd_valid && (!is_store[0] || !is_2nd_store)) begin
+  if (is_valid[0] && is_2nd_valid && (!is_store[0] || !is_2nd_store)) begin
     is_valid[1] = true;
     reg_addr[1] = entries[1].Dest;
     reg_data[1] = entries[1].result;

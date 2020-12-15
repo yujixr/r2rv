@@ -83,11 +83,8 @@ always_comb
   if (is_really_commited[1]) begin
     queue_advance = 2;
   end
-  else if (is_really_commited[0]) begin
-    queue_advance = 1;
-  end
   else begin
-    queue_advance = 0;
+    queue_advance = is_really_commited[0];
   end
 
 genvar i;
@@ -107,7 +104,10 @@ generate
     always_comb
       // from DISPATCH stage
       if (entries[i].e_state == S_NOT_USED) begin
-        if (i == allocation_indexes[0] && is_valid_allocation[0]) begin
+        if (results[0].is_branch_established || results[1].is_branch_established) begin
+          entries_next[i] = 0;
+        end
+        else if (i == allocation_indexes[0] && is_valid_allocation[0]) begin
           entries_next[i] = entries_new[0];
         end
         else if (i == allocation_indexes[1] && is_valid_allocation[1]) begin

@@ -45,7 +45,14 @@ generate
       .result(results[i].result)
     );
 
-    assign results[i].is_branch_established = (ex_contents[i].Unit == BRANCH) & (ex_contents[i].mode == EX_NORMAL) & _is_branch_established[i];
+    always_comb
+      if (ex_contents[i].is_valid && (ex_contents[i].Unit == BRANCH)
+        && _is_branch_established[i]) begin
+        results[i].is_branch_established = 1;
+      end
+      else begin
+        results[i].is_branch_established = 0;
+      end
   end
 endgenerate
 
@@ -54,13 +61,9 @@ always_comb
     is_branch_established = 1;
     jumped_to = results[1].jumped_to;
   end
-  else if (results[0].is_branch_established) begin
-    is_branch_established = 1;
-    jumped_to = results[0].jumped_to;
-  end
   else begin
-    is_branch_established = 0;
-    jumped_to = 32'b0;
+    is_branch_established = results[0].is_branch_established;
+    jumped_to = results[0].jumped_to;
   end
 
 endmodule
