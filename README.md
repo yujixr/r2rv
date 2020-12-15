@@ -1,6 +1,6 @@
 # R2RV
 
-![GitHub top language](https://img.shields.io/github/languages/top/yujixr/r2rv?color=F5DF4D&logoColor=F5DF4D&style=flat-square)
+![GitHub top language](https://img.shields.io/github/languages/top/yujixr/r2rv?color=F5DF4D&style=flat-square)
 ![GitHub](https://img.shields.io/github/license/yujixr/r2rv?color=F5DF4D&style=flat-square)
 
 R2 RISC-V implementation
